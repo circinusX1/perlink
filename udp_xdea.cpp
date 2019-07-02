@@ -5,8 +5,13 @@
 udp_xdea::udp_xdea(const uint32_t __key[4])
 {
     ::memcpy(_key,__key,sizeof(_key));
+    _secured=true;
 }
 
+udp_xdea::udp_xdea()
+{
+    _secured=false;
+}
 
 int udp_xdea::send(const char* buff,  int length, int port, const char* ip)
 {
@@ -86,7 +91,7 @@ int  udp_xdea::rsend(const uint8_t* buff, const int length, const  ipp& ipa)
     return udp_sock::send(buff,length,rsin);
 }
 
-int udp_xdea::rreceive(char* buff, int length,   const  ipp& ipa)
+int udp_xdea::rreceive(char* buff, int length, const  ipp& ipa)
 {
     SADDR_46 rsin;
     rsin.sin_port        = htons (ipa._p);
@@ -101,3 +106,7 @@ int udp_xdea::rreceive(char* buff, int length,   const  ipp& ipa)
     return bytes;
 }
 
+int udp_xdea::rreceive(char* buff, int length, int port, const char* ip)
+{
+    return udp_sock::receive(buff,length);
+}

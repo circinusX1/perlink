@@ -8,6 +8,7 @@ CONFIG -= app_bundle
 # depend on your compiler). Please consult the documentation of the
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
+DEFINES += MEEIOT_SERVER
 
 # You can also make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -20,7 +21,8 @@ SOURCES += \
         peers.cpp \
         per_id.cpp \
         sock.cpp \
-        u_server.cpp \
+        u_server_me.cpp \
+        u_server_one.cpp \
         udp_xdea.cpp
 
 # Default rules for deployment.
@@ -35,3 +37,7 @@ HEADERS += \
     sock.h \
     u_server.h \
     udp_xdea.h
+
+
+
+unix|win32: LIBS += -lsqlite3

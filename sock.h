@@ -220,7 +220,8 @@ struct SADDR_46 : public SA_46
             ::strcpy(_sip,inet_ntoa((struct in_addr)this->sin_addr));
         }
     void set_port(uint16_t port){sin_port = htons(port);}
-    u_int32_t ip4()const{return htonl(sin_addr.s_addr);}    //ret in normal order
+    u_int32_t ip4()const{return htonl(sin_addr.s_addr);}
+    u_int32_t ip4raw()const{return (sin_addr.s_addr);}  //ret in normal order
     u_int32_t port()const{return htons(sin_port);}          //ret in normal order
     const char* c_str()const{return _sip;};
     operator const char*()const{return _sip;}

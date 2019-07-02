@@ -1,4 +1,4 @@
-
+#ifndef MEEIOT_SERVER
 #include <unistd.h>
 #include <iostream>
 #include "u_server.h"
@@ -134,3 +134,4 @@ void u_server::_del_oldies()
     time_t now = time(0);
     _ps.del_oldies(now);
 }
+#endif

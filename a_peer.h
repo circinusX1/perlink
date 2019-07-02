@@ -19,13 +19,17 @@ private:
     bool _receive(udp_xdea& s);
     void _io(udp_xdea& s, time_t now);
     void _peering(udp_xdea& s);
+    void  _pipe_it();
 private:
     ipp             _per;
     std::string     _id;
-    SrvCap          _pl;
+    SrvCap          _plin;
+    SrvCap          _plout;
     int             _status;
     time_t          _regtime=0;
     time_t          _pingtime=0;
+    std::string     _infile;
+    std::string     _outfile;
 };
 
 #endif // A_PEER_H

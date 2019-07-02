@@ -4,7 +4,7 @@
 uint32_t     __key[4] = {0x51de1094, 0xc93f85b0, 0x2261266c, 0xd3628858};
 std::string  __meikey = "51de10940c93f85b02261266cd362885825a614183246bfcfef04a";
 
-void ed(const uint8_t *in, uint8_t* out, int len, uint32_t __key[4], bool encrypt)
+void ed(const uint8_t *in, uint8_t* out, int len, const uint32_t __key[4], bool encrypt)
 {
     ::memcpy(out,in,len);
     for(int i=0;i<len/BLOCK_SIZE;i++)

@@ -9,16 +9,18 @@
 #define CLI_PORT    5002
 #define SRV_IP      "127.0.0.1"
 #define PAIRING_TOUT 10
-#define TTLIVE       20
+#define TTLIVE       60
+#define REG_TICK     2
 
 struct ipp{
     ipp():_a(0),_p(0){}
     ipp(const char* a, int p){
-        _a = (uint32_t)htonl(inet_addr(a));
+        _a = (uint32_t)(inet_addr(a));
         _p = htons(p);
     }
-    ipp(struct SADDR_46& sa):_a(htonl(sa.sin_addr.s_addr)),_p(htons(sa.sin_port)){}
-    ipp(struct sockaddr_in& sa):_a(htonl(sa.sin_addr.s_addr)),_p(htons(sa.sin_port)){}
+    ipp(struct SADDR_46& sa):_a(htonl(sa.sin_addr.s_addr)), _p(htons(sa.sin_port)){}
+    ipp(struct sockaddr_in& sa):_a(htonl(sa.sin_addr.s_addr)), _p(htons(sa.sin_port)){}
+
     bool operator==(const ipp& r){return _a==r._a && _p==r._p;}
     const ipp& operator=(const ipp& r){_a = r._a; _p = r._p; return *this;}
     const ipp& operator=(const sockaddr_in& r){_a = htonl(r.sin_addr.s_addr);
@@ -67,7 +69,7 @@ inline void xtea_decipher(unsigned int num_rounds,
     v[0]=v0; v[1]=v1;
 }
 
-void ed(const uint8_t *in, uint8_t* out, int len, uint32_t __key[4], bool encrypt);
+void ed(const uint8_t *in, uint8_t* out, int len, const uint32_t __key[4], bool encrypt);
 extern uint32_t     __key[4];
 extern std::string  __meikey;
 
@@ -78,7 +80,9 @@ enum {
     SRV_PEERING,
     SRV_UNREGISTER,
     SRV_UNREGISTERED,
+    SRV_REJECT,
     PER_PING,
+    PER_AIH, // i am here
     PER_PONG,
     PER_PERRED,
     PER_DATA=':',
@@ -86,13 +90,17 @@ enum {
 
 struct  SrvCap
 {
-    SrvCap(){}
+    SrvCap(){memset(this,0,sizeof(*this));}
+    void set_meiot(const std::string& k){
+        memset(_u.reg.meiot,0,sizeof(_u.reg.meiot));
+        ::strcpy(_u.reg.meiot, k.c_str());
+    }
     uint8_t _verb;
     union U
     {
         U(){}
         struct {
-            char meiot[56];
+            char meiot[58];
             char ip[16];
             int  port;
             char id[16];
