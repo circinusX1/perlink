@@ -2,8 +2,8 @@
 #define UDP_XDEA_H
 
 #include "sock.h"
+#include "per_id.h"
 
-#define MAX_UDP 1140
 
 class udp_xdea : public udp_sock
 {
@@ -14,6 +14,13 @@ public:
     virtual int     send(const unsigned char* buff, const int length, const  SADDR_46& rsin);
     virtual int     receive(char* buff, int length,  SADDR_46& rsin);
     virtual int     receive(char* buff, int length, int port=0, const char* ip=0  );
+    virtual int     send(const unsigned char* buff, const int length, const  ipp& ipa);
+    virtual int     receive(char* buff, int length,   const  ipp& ipa);
+
+
+    virtual int     rsend(const unsigned char* buff, const int length, const  ipp& ipa);
+    virtual int     rreceive(char* buff, int length, const  ipp& ipa);
+
 private:
     uint32_t    _key[4];
     uint8_t     _buff[MAX_UDP];

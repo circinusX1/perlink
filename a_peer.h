@@ -15,11 +15,15 @@ public:
     void main();
 
 private:
-    bool _wait_link(udp_xdea& s);
-    void _linked(udp_xdea& s);
+    bool _receive(udp_xdea& s);
+    void _io(udp_xdea& s);
+    void _peering(udp_xdea& s);
 private:
-    struct sockaddr_in _per;
-    std::string        _id;
+    ipp             _per;
+    std::string     _id;
+    Payload         _pl;
+    int             _status;
+    time_t          _regtime;
 };
 
 #endif // A_PEER_H

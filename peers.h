@@ -11,7 +11,8 @@ class peers
 {
 public:
     peers();
-    bool    add(std::string& n, struct sockaddr_in& p, struct sockaddr_in& q);
+    bool  add(const std::string& n,  const ipp& p, const ipp& q);
+    const per_pair* find(const std::string& n);
 
 private:
     std::map<std::string, per_pair> _pairs;

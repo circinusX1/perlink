@@ -4,28 +4,33 @@
 #include <string>
 #include "sock.h"
 
+#define MAX_UDP     512
 #define SRV_PORT    5001
 #define CLI_PORT    5002
 #define SRV_IP      "127.0.0.1"
 
-struct per_id
-{
-    bool   link;
-    struct sockaddr_in  _public;
-    struct sockaddr_in  _private;
-} __attribute__ ((aligned));
+struct ipp{
+    ipp():_a(0),_p(0){}
+    ipp(const char* a, int p){
+        _a = (uint32_t)inet_addr(a);
+        _p = p;
+    }
+    ipp(struct SADDR_46& sa):_a(sa.sin_addr.s_addr),_p(htons(sa.sin_port)){}
+    ipp(struct sockaddr_in& sa):_a(sa.sin_addr.s_addr),_p(htons(sa.sin_port)){}
+    bool operator==(const ipp& r){return _a==r._a && _p==r._p;}
+    const ipp& operator=(const ipp& r){_a = r._a; _p = r._p; return *this;}
+    const ipp& operator=(const sockaddr_in& r){_a = r.sin_addr.s_addr; _p = htons(r.sin_port); return *this;}
+
+    uint32_t _a;
+    int      _p;
+}__attribute__ ((aligned));
+
 
 struct per_pair
 {
-    per_pair(){
-        _a[0].sin_port=0;
-        _a[1].sin_port=0;
-        _b[0].sin_port=0;
-        _b[1].sin_port=0;
-    }
-    struct sockaddr_in  _a[2];
-    struct sockaddr_in  _b[2];
-};
+    ipp  _a[2];
+    ipp  _b[2];
+}__attribute__ ((aligned));
 
 
 #define BLOCK_SIZE 8
@@ -59,9 +64,55 @@ inline void xtea_decipher(unsigned int num_rounds,
 }
 
 void ed(const uint8_t *in, uint8_t* out, int len, uint32_t __key[4], bool encrypt);
-
 extern uint32_t     __key[4];
 extern std::string  __meikey;
+
+
+enum {
+    SRV_REGISTER=0,
+    SRV_REGISTERRED,
+    SRV_PEERING,
+    SRV_UNREGISTER,
+    SRV_UNREGISTERED,
+    PER_PING,
+    PER_PONG,
+    PER_DATA,
+    PER_PERRED,
+};
+
+struct  Payload
+{
+
+    uint8_t _verb;
+    union U
+    {
+        struct {
+            char meiot[56];
+            char ip[16];
+            int  port;
+            char id[16];
+        }   reg;
+
+        struct
+        {
+            bool  _link;
+            ipp   _public;
+            ipp   _private;
+        } pp;
+
+        uint8_t data[MAX_UDP];
+    } _u;
+}__attribute__ ((aligned));
+
+
+
+
+
+
+
+
+
+
 
 
 #endif // PER_ID_H
