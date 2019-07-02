@@ -4,7 +4,6 @@
 uint32_t     __key[4] = {0x51de1094, 0xc93f85b0, 0x2261266c, 0xd3628858};
 std::string  __meikey = "51de10940c93f85b02261266cd362885825a614183246bfcfef04a";
 
-
 void ed(const uint8_t *in, uint8_t* out, int len, uint32_t __key[4], bool encrypt)
 {
     ::memcpy(out,in,len);
@@ -20,13 +19,12 @@ void ed(const uint8_t *in, uint8_t* out, int len, uint32_t __key[4], bool encryp
         int mod=len%BLOCK_SIZE;
         int offset=(len/BLOCK_SIZE)*BLOCK_SIZE;
         char data[BLOCK_SIZE];
-        memcpy(data,out+offset,mod);
 
+        memcpy(data,out+offset,mod);
         if(encrypt)
             xtea_encipher(32,(uint32_t*)data,__key);
         else
             xtea_decipher(32,(uint32_t*)data,__key);
-
         memcpy(out+offset,data,mod);
     }
 }

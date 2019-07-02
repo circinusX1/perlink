@@ -29,9 +29,10 @@ bool u_server::run()
 
 void u_server::main()
 {
+    int             counter;
     udp_xdea        s(__key);
     std::string     meiotkey;
-    Payload         pl;
+    SrvCap         pl;
 
     if(s.create(SRV_PORT))
     {
@@ -39,40 +40,44 @@ void u_server::main()
         while(__alive)
         {
             SADDR_46 rem;
-            int by = s.receive(&pl,sizeof(pl));
+            int by = s.receive((char*)&pl,sizeof(pl));
             if(by == sizeof(pl))
             {
                 if(pl._verb == SRV_REGISTER || pl._verb == SRV_UNREGISTER)
                 {
-                    if(__meikey == pl._u.Reg.meiot)
+                    if(__meikey == pl._u.reg.meiot)
                     {
                         ipp priv(pl._u.reg.ip, pl._u.reg.port);
                         ipp pub(s.Rsin());
 
-                        std::cout<< "s<-c p:" << Ip2str(priv._a) << ":"<<port <<", "<< chunk << "\n";
-                        std::cout<< "s<-c P:" << Ip2str(pub._a)  << ":"<<pub._p <<", "<< chunk << "\n";
+                        std::cout<< "s<-c p:" << Ip2str(priv._a) << ":"<<htons(priv._p) << "\n";
+                        std::cout<< "s<-c P:" << Ip2str(pub._a)  << ":"<<htons(pub._p) << "\n";
 
                         if(pl._verb==SRV_REGISTER)
                         {
                             if(_ps.add(pl._u.reg.id, pub, priv))
                             {
-                                _linkthem(s, id);
+                                _linkthem(s, pl._u.reg.id);
                             }
                             else
                             {
                                 pl._verb = SRV_REGISTERRED;
-                                s.send(&pl, sizeof(pl), s.Rsin());
+                                s.send((const uint8_t*)&pl, sizeof(pl), s.Rsin());
                             }
                         }
                         else
                         {
-                            _ps.remove(pl._u.reg.id));
-                            pl._verb = SRV_UNREGISTERRED;
-                            s.send(&pl, sizeof(pl), s.Rsin());
+                            _ps.remove(pl._u.reg.id);
+                            pl._verb = SRV_UNREGISTERED;
+                            s.send((const uint8_t*)&pl, sizeof(pl), s.Rsin());
                         }
                         usleep(1000);
                     }
                 }
+            }
+            if(++counter % 100==0)
+            {
+                _del_oldies();
             }
         }
     }
@@ -80,35 +85,52 @@ void u_server::main()
 
 void u_server::_linkthem(udp_xdea& s, const std::string& id)
 {
-    const per_pair*  pp = _ps.find(id);
+    per_pair*  pp = _ps.find(id);
     if(pp)
     {
-        Payload  pl;
+        SrvCap  pl;
 
         pl._verb = SRV_PEERING;
-        pl._u._pp._link = true;
-        pl._u._pp._private = pp->_b[0];
-        pl._u._pp._public  = pp->_b[1];
+        pl._u.pp._link = true;
+        pl._u.pp._private = pp->_b[0];
+        pl._u.pp._public  = pp->_b[1];
 
         // A <- b/B
-        std::cout << "a<-" << Ip2str(pp->_a[0]._a) <<":"<< pp->_a[0]._p<<"\n";
-        std::cout << "a<-" << Ip2str(pp->_a[1]._a) <<":"<< pp->_a[1]._p<<"\n";
+        std::cout << "a<-" << Ip2str(pp->_a[0]._a) <<":"<< pp->_a[0]._p <<"\n";
+        std::cout << "a<-" << Ip2str(pp->_a[1]._a) <<":"<< pp->_a[1]._p <<"\n";
 
-        s.send((const unsigned char*)&pl,sizeof(pl), pp->_a[0]);
-        s.send((const unsigned char*)&pl,sizeof(pl), pp->_a[1]);
+        s.send((const uint8_t*)&pl,sizeof(pl), pp->_a[0]);
+        s.send((const uint8_t*)&pl,sizeof(pl), pp->_a[1]);
+/*
+        pp->_a[0]._p = htons(pp->_a[0]._p);
+        pp->_a[1]._p = htons(pp->_a[1]._p);
+        s.send((const uint8_t*)&pl,sizeof(pl), pp->_a[0]);
+        s.send((const uint8_t*)&pl,sizeof(pl), pp->_a[1]);
+*/
 
-        pl._u._pp._private = pp->_a[0];
-        pl._u._pp._public  = pp->_a[1];
+        pl._u.pp._private = pp->_a[0];
+        pl._u.pp._public  = pp->_a[1];
 
         // A <- b/B
         std::cout << "b<-" << Ip2str(pp->_b[0]._a) <<":"<< pp->_b[0]._p<<"\n";
         std::cout << "b<-" << Ip2str(pp->_b[1]._a) <<":"<< pp->_b[1]._p<<"\n";
 
-        s.send((const unsigned char*)&pl,sizeof(pl), pp->_b[0]);
-        s.send((const unsigned char*)&pl,sizeof(pl), pp->_b[1]);
+        s.send((const uint8_t*)&pl,sizeof(pl), pp->_b[0]);
+        s.send((const uint8_t*)&pl,sizeof(pl), pp->_b[1]);
+/*
+        pp->_b[0]._p = htons(pp->_b[0]._p);
+        pp->_b[1]._p = htons(pp->_b[1]._p);
 
+        s.send((const uint8_t*)&pl,sizeof(pl), pp->_b[0]);
+        s.send((const uint8_t*)&pl,sizeof(pl), pp->_b[1]);
+*/
         std::cout << "\r\n";
         ::sleep(4);
     }
 }
 
+void u_server::_del_oldies()
+{
+    time_t now = time(0);
+    _ps.del_oldies(now);
+}

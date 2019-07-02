@@ -12,8 +12,9 @@ class peers
 public:
     peers();
     bool  add(const std::string& n,  const ipp& p, const ipp& q);
-    const per_pair* find(const std::string& n);
-
+    per_pair* find(const std::string& n);
+    void remove(const std::string& n);
+    void del_oldies(time_t now);
 private:
     std::map<std::string, per_pair> _pairs;
 };

@@ -4,7 +4,6 @@
 #include <string>
 #include "per_id.h"
 
-
 extern bool __alive;
 
 class udp_xdea;
@@ -12,18 +11,21 @@ class a_peer
 {
 public:
     a_peer(const char* id);
+    virtual ~a_peer();
     void main();
-
+    bool snd(const uint8_t* pd, size_t l, bool crypt);
+    int  rec(uint8_t* pd, size_t l, bool decrypt);
 private:
     bool _receive(udp_xdea& s);
-    void _io(udp_xdea& s);
+    void _io(udp_xdea& s, time_t now);
     void _peering(udp_xdea& s);
 private:
     ipp             _per;
     std::string     _id;
-    Payload         _pl;
+    SrvCap          _pl;
     int             _status;
-    time_t          _regtime;
+    time_t          _regtime=0;
+    time_t          _pingtime=0;
 };
 
 #endif // A_PEER_H

@@ -18,7 +18,7 @@ public:
 
 private:
     void _linkthem(udp_xdea& s, const std::string& id);
-
+    void _del_oldies();
 private:
     std::thread*        _t;
     peers               _ps;

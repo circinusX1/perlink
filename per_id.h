@@ -4,22 +4,25 @@
 #include <string>
 #include "sock.h"
 
-#define MAX_UDP     512
+#define MAX_UDP     1024
 #define SRV_PORT    5001
 #define CLI_PORT    5002
 #define SRV_IP      "127.0.0.1"
+#define PAIRING_TOUT 10
+#define TTLIVE       20
 
 struct ipp{
     ipp():_a(0),_p(0){}
     ipp(const char* a, int p){
-        _a = (uint32_t)inet_addr(a);
-        _p = p;
+        _a = (uint32_t)htonl(inet_addr(a));
+        _p = htons(p);
     }
-    ipp(struct SADDR_46& sa):_a(sa.sin_addr.s_addr),_p(htons(sa.sin_port)){}
-    ipp(struct sockaddr_in& sa):_a(sa.sin_addr.s_addr),_p(htons(sa.sin_port)){}
+    ipp(struct SADDR_46& sa):_a(htonl(sa.sin_addr.s_addr)),_p(htons(sa.sin_port)){}
+    ipp(struct sockaddr_in& sa):_a(htonl(sa.sin_addr.s_addr)),_p(htons(sa.sin_port)){}
     bool operator==(const ipp& r){return _a==r._a && _p==r._p;}
     const ipp& operator=(const ipp& r){_a = r._a; _p = r._p; return *this;}
-    const ipp& operator=(const sockaddr_in& r){_a = r.sin_addr.s_addr; _p = htons(r.sin_port); return *this;}
+    const ipp& operator=(const sockaddr_in& r){_a = htonl(r.sin_addr.s_addr);
+                                               _p = htons(r.sin_port); return *this;}
 
     uint32_t _a;
     int      _p;
@@ -30,6 +33,7 @@ struct per_pair
 {
     ipp  _a[2];
     ipp  _b[2];
+    time_t born;
 }__attribute__ ((aligned));
 
 
@@ -76,16 +80,17 @@ enum {
     SRV_UNREGISTERED,
     PER_PING,
     PER_PONG,
-    PER_DATA,
     PER_PERRED,
+    PER_DATA=':',
 };
 
-struct  Payload
+struct  SrvCap
 {
-
+    SrvCap(){}
     uint8_t _verb;
     union U
     {
+        U(){}
         struct {
             char meiot[56];
             char ip[16];
@@ -100,8 +105,8 @@ struct  Payload
             ipp   _private;
         } pp;
 
-        uint8_t data[MAX_UDP];
     } _u;
+    char padding[8];
 }__attribute__ ((aligned));
 
 

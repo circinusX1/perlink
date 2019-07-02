@@ -380,7 +380,7 @@ char* tcp_sock::getsocketaddr_str(char* pAddr)const
     return pAddr;
 }
 
-int tcp_sock::receiveall(const unsigned char* buff, const int length)
+int tcp_sock::receiveall(const uint8_t* buff, const int length)
 {
     int shot = 0;
     int toreceive = length;
@@ -401,7 +401,7 @@ int tcp_sock::receiveall(const unsigned char* buff, const int length)
 
 //-----------------------------------------------------------------------------
 //returns 0 for success
-int     tcp_sock::sendall(const unsigned char* buff, int length, int tout)
+int     tcp_sock::sendall(const uint8_t* buff, int length, int tout)
 {
     int shot = 0;
     int sent = 0;
@@ -440,7 +440,7 @@ int tcp_sock::send(const char* buff, const int length, int , const char* )
     return send((unsigned char*)buff, length, 0 , 0 );
 }
 //-----------------------------------------------------------------------------
-int tcp_sock::send(const unsigned char* buff, const int length, int , const char* )
+int tcp_sock::send(const uint8_t* buff, const int length, int , const char* )
 {
     _syserr = 0;
     assert(length);
@@ -1176,11 +1176,11 @@ int  udp_sock::bind(const char* addr, int port)
 //-----------------------------------------------------------------------------
 int  udp_sock::send(const char* buff, const int length, int port, const char* ip)
 {
-    return send((const unsigned char*)buff, length, port, ip);
+    return send((const uint8_t*)buff, length, port, ip);
 }
 
 //-----------------------------------------------------------------------------
-int  udp_sock::send(const unsigned char* buff, const int length, int port, const char* ip)
+int  udp_sock::send(const uint8_t* buff, const int length, int port, const char* ip)
 {
     int snd = -1;
     _syserr  = 0;
@@ -1222,11 +1222,11 @@ int  udp_sock::send(const unsigned char* buff, const int length, int port, const
 //-----------------------------------------------------------------------------
 int  udp_sock::send(const char* buff, const int length, const SADDR_46& rsin)
 {
-    return send((const unsigned char*) buff, length, rsin);
+    return send((const uint8_t*) buff, length, rsin);
 }
 
 //-----------------------------------------------------------------------------
-int  udp_sock::send(const unsigned char* buff, const int length, const SADDR_46& rsin)
+int  udp_sock::send(const uint8_t* buff, const int length, const SADDR_46& rsin)
 {
     int snd ;
     _syserr = 0;
@@ -1438,7 +1438,7 @@ SOCKET udp_group_sock::create(int opt)
 }
 
 //-----------------------------------------------------------------------------
-int udp_group_sock::send(const unsigned char* buff, int length, int port, const char* ipGrp)
+int udp_group_sock::send(const uint8_t* buff, int length, int port, const char* ipGrp)
 {
 	int snd;
 

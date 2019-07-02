@@ -310,8 +310,8 @@ public:
     virtual bool    destroy(bool be=true);
     virtual int     send(const char* buff, const int length, int port=0, const char* ip=0  )=0;
     virtual int     send(const char* buff, const int length, const  SADDR_46& rsin)=0;
-    virtual int     send(const unsigned char* buff, const int length, int port=0, const char* ip=0  )=0;
-    virtual int     send(const unsigned char* buff, const int length, const  SADDR_46& rsin)=0;
+    virtual int     send(const uint8_t* buff, const int length, int port=0, const char* ip=0  )=0;
+    virtual int     send(const uint8_t* buff, const int length, const  SADDR_46& rsin)=0;
     virtual int     receive(unsigned char* buff, int length, int port=0, const char* ip=0  )=0;
     virtual int     receive(unsigned char* buff, int length,  SADDR_46& rsin)=0;
     virtual int     select_receive(unsigned char* buff, int length, int toutms, int wait=0);
@@ -359,15 +359,15 @@ public:
     virtual SOCKET  create(const SADDR_46& r, int opt=0);
     virtual int     send(const char* buff, const int length, int port=0, const char* ip=0  );
     virtual int     send(const char* buff, const int length, const  SADDR_46& rsin){UNUS(rsin); return send(buff, length);};
-    virtual int     send(const unsigned char* buff, const int length, int port=0, const char* ip=0  );
-    virtual int     send(const unsigned char* buff, const int length, const  SADDR_46& rsin){UNUS(rsin) ;return send(buff, length);}
+    virtual int     send(const uint8_t* buff, const int length, int port=0, const char* ip=0  );
+    virtual int     send(const uint8_t* buff, const int length, const  SADDR_46& rsin){UNUS(rsin) ;return send(buff, length);}
     virtual int     receive(unsigned char* buff, int length, int port=0, const char* ip=0  );
     virtual int     receive(unsigned char* buff, int length,  SADDR_46& rsin){UNUS(rsin); return receive(buff,length);}
     virtual int     receive(char* buff, int length, int port=0, const char* ip=0  );
     virtual int     receive(char* buff, int length,  SADDR_46& rsin){UNUS(rsin); return receive(buff,length);}
-    virtual int     sendall(const unsigned char* buff,  int length, int tout=8000);
+    virtual int     sendall(const uint8_t* buff,  int length, int tout=8000);
     virtual int     sendall(const char* buff, int length, int tout=8000){return sendall((unsigned char*)buff, length, tout);}
-    int             receiveall(const unsigned char* buff, const int length);
+    int             receiveall(const uint8_t* buff, const int length);
 
     char*           ssock_addrip();
     char*           getsocketaddr_str(char* pAddr)const;
@@ -444,8 +444,8 @@ public:
     virtual SOCKET  create(const SADDR_46& r, int opt=0);
     virtual int     send(const char* buff, const int length, int port=0, const char* ip=0  );
     virtual int     send(const char* buff, const int length, const  SADDR_46& rsin);
-    virtual int     send(const unsigned char* buff, const int length, int port=0, const char* ip=0  );
-    virtual int     send(const unsigned char* buff, const int length, const  SADDR_46& rsin);
+    virtual int     send(const uint8_t* buff, const int length, int port=0, const char* ip=0  );
+    virtual int     send(const uint8_t* buff, const int length, const  SADDR_46& rsin);
     virtual int     receive(unsigned char* buff, int length, int port=0, const char* ip=0  );
     virtual int     receive(unsigned char* buff, int length,  SADDR_46& rsin);
     virtual int     receive(char* buff, int length, int port=0, const char* ip=0  );
