@@ -1,4 +1,4 @@
-***  UDP PUNCHTRU MEEIOT.ORG  RELAYING SERVER AND LINUX CLIENT ***
+###UDP PUNCHTRU###
 
 ```
 ./perlinc s vvv          #  on a server on a cloud
