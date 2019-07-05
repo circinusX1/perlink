@@ -4,30 +4,44 @@
 #include <string>
 #include "sock.h"
 
-#define MAX_UDP     1024
+#define MAX_UDP     10024
 #define SRV_PORT    5001
 #define CLI_PORT    5002
 #define SRV_IP      "127.0.0.1"
 #define PAIRING_TOUT 10
-#define TTLIVE       60
-#define REG_TICK     2
+#define TTLIVE       10
+#define REG_TICK     10
+#define IAM_HERE_TO  20
+#define SERVER_DOWN_TO 30
+
+#define MAX_ATTEMPS     512
+#define DB_PATH         "/usr/share/perlink"
+#define DB_FILE         "/usr/share/perlink/perlink.db"
 
 struct ipp{
+    uint32_t _a;
+    int      _p;
+
     ipp():_a(0),_p(0){}
     ipp(const char* a, int p){
-        _a = (uint32_t)(inet_addr(a));
+        _a = (uint32_t)htonl(inet_addr(a));
         _p = htons(p);
     }
+    ipp(uint32_t a, int p):_a(a), _p(p){}
+    ipp(const ipp& r):_a(r._a), _p(r._p){}
     ipp(struct SADDR_46& sa):_a(htonl(sa.sin_addr.s_addr)), _p(htons(sa.sin_port)){}
     ipp(struct sockaddr_in& sa):_a(htonl(sa.sin_addr.s_addr)), _p(htons(sa.sin_port)){}
 
     bool operator==(const ipp& r){return _a==r._a && _p==r._p;}
     const ipp& operator=(const ipp& r){_a = r._a; _p = r._p; return *this;}
-    const ipp& operator=(const sockaddr_in& r){_a = htonl(r.sin_addr.s_addr);
-                                               _p = htons(r.sin_port); return *this;}
+    const ipp& operator=(const sockaddr_in& r){_a = htonl(r.sin_addr.s_addr);_p = htons(r.sin_port); return *this;}
+    std::string str()const{
+        std::string ret = std::string(Ip2str(_a));
+        ret += ":";
+        ret += std::to_string(_p);
+        return ret;
+    }
 
-    uint32_t _a;
-    int      _p;
 }__attribute__ ((aligned));
 
 
@@ -77,44 +91,64 @@ extern std::string  __meikey;
 enum {
     SRV_REGISTER=0,
     SRV_REGISTERRED,
-    SRV_PEERING,
+    SRV_SET_PEER,
     SRV_UNREGISTER,
     SRV_UNREGISTERED,
     SRV_REJECT,
+    SRV_PING,
     PER_PING,
-    PER_AIH, // i am here
+    PER_AIH, // 8 am here
     PER_PONG,
-    PER_PERRED,
+    PER_LINKED,
     PER_DATA=':',
 };
 
+
+struct tper{
+    ipp  _pub;
+    ipp  _priv;
+    bool _type;
+};
+
+
 struct  SrvCap
 {
-    SrvCap(){memset(this,0,sizeof(*this));}
-    void set_meiot(const std::string& k){
-        memset(_u.reg.meiot,0,sizeof(_u.reg.meiot));
-        ::strcpy(_u.reg.meiot, k.c_str());
-    }
     uint8_t _verb;
     union U
     {
         U(){}
         struct {
             char meiot[58];
-            char ip[16];
-            int  port;
-            char id[16];
+            struct ipp  ipp;
+            bool        typ;      // Publisher true Consumenr false
+            char        id[16];
         }   reg;
 
         struct
         {
-            bool  _link;
-            ipp   _public;
-            ipp   _private;
+            ipp         _public;
+            ipp         _private;
+            bool        _typ;      // Publisher true COnsumenr false
+            char        _id[16];
         } pp;
 
     } _u;
     char padding[8];
+
+    SrvCap(){memset(this,0,sizeof(*this));}
+    void set_meiot(const std::string& k){
+        memset(_u.reg.meiot,0,sizeof(_u.reg.meiot));
+        ::strcpy(_u.reg.meiot, k.c_str());
+    }
+    bool operator==(const SrvCap& r)
+    {
+        return !memcmp(this, &r,sizeof(*this));
+    }
+    const SrvCap& operator=(const SrvCap& r)
+    {
+        ::memcpy(this, &r,sizeof(*this));
+        return *this;
+    }
 }__attribute__ ((aligned));
 
 

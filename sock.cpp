@@ -1351,6 +1351,10 @@ char* udp_sock::ssock_addrip()
     return _sip;
 }
 
+int  udp_sock::set_rsin(const SADDR_46& r)
+{
+    _remote_sin = r;
+}
 
 int  udp_sock::set_rsin(const char* sip, int port)
 {
@@ -1518,6 +1522,7 @@ int udp_group_sock::join(const char* ipGrp, int port)
 
 
 Ip2str::Ip2str(const SADDR_46& sa){
+    memset(_s,0,sizeof(_s));
     if(sa.sin_addr.s_addr)
     {
         u_int32_t dw = _IP(sa);
@@ -1529,12 +1534,14 @@ Ip2str::Ip2str(const SADDR_46& sa){
                        htons(sa.sin_port));
     }else
     {
-        ::strcpy(_s,"0.0.0.0:0");
+        ::strcpy(_s,"0.0.0.0");
     }
 }
 
-Ip2str::Ip2str(const u_int32_t dw){
-   ::sprintf( _s,"%u.%u.%u.%u:0",//%04X:%04X:%04X:%04X:%04X:%04X",
+Ip2str::Ip2str(u_int32_t dw)
+{
+    memset(_s,0,sizeof(_s));
+   ::sprintf( _s,"%d.%d.%d.%d",//%04X:%04X:%04X:%04X:%04X:%04X",
                       (int) ((dw >> 24) & 0xFF),
                       (int) ((dw >>16) & 0xFF),
                       (int) ((dw >>8) & 0xFF),

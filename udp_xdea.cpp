@@ -54,8 +54,8 @@ int udp_xdea::receive(char* buff, int length, int port, const char* ip)
 int  udp_xdea::send(const uint8_t* buff, const int length, const  ipp& ipa)
 {
     ed((const uint8_t*)buff,_buff,length,_key,true);
-    char loco[128] = {0};
-    ed((const uint8_t*)_buff,(uint8_t*)loco,length,_key,false);
+//    char loco[128] = {0};
+//    ed((const uint8_t*)_buff,(uint8_t*)loco,length,_key,false);
 
     SADDR_46 rsin;
     rsin.sin_port        = htons (ipa._p);

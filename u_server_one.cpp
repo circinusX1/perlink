@@ -1,4 +1,4 @@
-#ifndef MEEIOT_SERVER
+#if 0
 #include <unistd.h>
 #include <iostream>
 #include "u_server.h"
@@ -77,7 +77,7 @@ void u_server::main()
             }
             if(++counter % 100==0)
             {
-                _del_oldies();
+                _pi ng_pers();
             }
         }
     }
@@ -90,7 +90,7 @@ void u_server::_linkthem(udp_xdea& s, const std::string& id)
     {
         SrvCap  pl;
 
-        pl._verb = SRV_PEERING;
+        pl._verb = SRV_SET_PEER;
         pl._u.pp._link = true;
         pl._u.pp._private = pp->_b[0];
         pl._u.pp._public  = pp->_b[1];
@@ -129,7 +129,7 @@ void u_server::_linkthem(udp_xdea& s, const std::string& id)
     }
 }
 
-void u_server::_del_oldies()
+void u_server::_pi ng_pers()
 {
     time_t now = time(0);
     _ps.del_oldies(now);

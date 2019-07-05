@@ -19,12 +19,7 @@ int main(int argc, char *argv[])
 
     if(argc>=3)
     {
-        if(argv[1][0]=='s')
-        {
-            u_server u(argv[2]);
-            u.main();
-        }
-        else
+        if( ::strchr(argv[2],':'))
         {
             _tokeys(__meikey,__key);
             std::cout << __key[0] << __key[1] <<__key[2] <<__key[3] << "\n";
@@ -34,6 +29,23 @@ int main(int argc, char *argv[])
             per.main();
         }
     }
+    if(argc==2)
+    {
+        if(::access(DB_PATH,0)!=0)
+        {
+            std::cerr << DB_PATH << " not created \n";
+            exit (1);
+        }
+        system("rm /usr/share/perlink/perlink.db");
+
+        if(argv[1][0]=='s')
+        {
+            u_server u(argv[2]);
+            u.main();
+        }
+    }
+
+
     return 0;
 }
 

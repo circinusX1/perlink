@@ -1,6 +1,6 @@
 QT -= gui
 
-CONFIG += c++11 console
+CONFIG += c++11 console -Wunused-parameter
 CONFIG -= app_bundle
 
 # The following define makes your compiler emit warnings if you use
@@ -20,8 +20,10 @@ SOURCES += \
         main.cpp \
         peers.cpp \
         per_id.cpp \
+        pipefiles.cpp \
         sock.cpp \
-        u_server_me.cpp \
+        sqliter.cpp \
+        u_server.cpp \
         u_server_one.cpp \
         udp_xdea.cpp
 
@@ -34,7 +36,9 @@ HEADERS += \
     a_peer.h \
     peers.h \
     per_id.h \
+    pipefiles.h \
     sock.h \
+    sqliter.h \
     u_server.h \
     udp_xdea.h
 

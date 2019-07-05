@@ -27,21 +27,21 @@ public:
     void main();
 
 private:
-    void _linkthem(udp_xdea& s, const char* id);
-    void _del_oldies();
+    void _store_peer(udp_xdea& s, SrvCap& pl, ipp& pub, ipp& priv);
+    void _remove_peer(udp_xdea& s, SrvCap& pl, ipp& pub, ipp& priv);
+    void _ping_pers(udp_xdea& s, SrvCap& pl);
 
-#ifdef  MEEIOT_SERVER
     bool _auth(udp_xdea& s, SrvCap& pl);
     void _deny(udp_xdea& s);
     void _process(udp_xdea& s, SrvCap& pl);
     void _ufw_reject(uint32_t ip);
     void _test();
-#endif //MEEIOT_SERVER
+    void _update_db(udp_xdea& s, SrvCap& pl);
+    void _delete_olies();
 private:
     std::thread*        _t;
-    peers               _ps;
     sqlite3             *_db = nullptr;
-    std::deque<QAuth>   _auths;
+    SrvCap              _prev;
 };
 
 #endif // U_SERVER_H

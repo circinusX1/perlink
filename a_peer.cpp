@@ -18,80 +18,96 @@ a_peer::a_peer(const char* id):_id(id)
     _status = SRV_UNREGISTERED;
     _regtime = 0;
     _pingtime = 0;
-    system("rm -f /tmp/peer_*");
+    _type = _id[0]=='p' ? 1 : 0;
+    system("rm -f /tmp/_p_*");
+    _udpbuffer = new uint8_t[MAX_UDP+1];
 }
 
 a_peer::~a_peer()
 {
-
+    ::close(_fdout);
+    delete []_udpbuffer;
 }
 
 void a_peer::main()
 {
-
-    int         counter;
     udp_xdea    s(__key);
-    time_t      now;
+    time_t      now = time(0);
+    time_t      iah = 0;
 
-    strcpy(_plout._u.reg.ip,sock::GetLocalIP("127.0.0.1"));
-    strcpy(_plout._u.reg.meiot,__meikey.c_str());
-    strcpy(_plout._u.reg.id,_id.c_str());
-    _plout._u.reg.port = __perport;
-    if(s.create(__perport))
+    _pingtime = now;
+    _srvsin.from_string(SRV_IP, SRV_PORT);
+    strcpy(_mecap._u.reg.meiot,__meikey.c_str());
+    strcpy(_mecap._u.reg.id,_id.c_str());
+    _mecap._u.reg.typ = _type;
+
+    for(int i=__perport; i< __perport+100;i++)
     {
-        s.set_option(SO_REUSEADDR,1);
-        s.bind();
+        if(s.create(i) && s.bind()!=-1)
+        {
+            __perport=i;
+            break;
+        }
+        s.destroy();
+    }
+
+    if(s.socket()>0)
+    {
+
+
+        std::cout << "on port" << __perport << "\n";
         while(__alive)
         {
-            _plout._verb = SRV_REGISTER;
-
             now = time(0);
+
             if(_status==SRV_UNREGISTERED)
             {
                 if(now - _regtime > REG_TICK)
                 {
                     _regtime = now;
-                    _plout._verb = SRV_REGISTER;
-                    if(0==s.send((const char*)&_plout,sizeof(_plout),SRV_PORT,SRV_IP))
+                    _mecap._verb = SRV_REGISTER;
+                    _mecap._u.reg.ipp = ipp(sock::GetLocalIP("127.0.0.1"), __perport);
+                    if(0==s.send((const uint8_t*)&_mecap,sizeof(_mecap),_srvsin))
                     {
                         std::cout << "no server \r\n";
                         break;
                     }
                 }
-                if(false == _receive(s))
+            }
+            _receive(s,now);
+            if(now - iah > IAM_HERE_TO)
+            {
+                iah = now;
+                _i_am_here(s);
+                if(now - _pingtime > SERVER_DOWN_TO)
                 {
-                    break;
-                }
-            }
-            else if(_status==PER_PERRED)
-            {
-                _io(s,now);
-            }
-            else
-            {
-                _receive(s);
-            }
-            if(++counter %100 == 0)
-            {
-                if(_status!=PER_PERRED)
-                {
-                    if(time(0)-_regtime>PAIRING_TOUT)
-                    {
-                        _status = SRV_UNREGISTERED;
-                        _regtime = time(0);
-                    }
+                    std::cout << " ?????    server missing \r\n";
+                    _pers.clear();
+                    _status=SRV_UNREGISTERED;
+                    _pingtime = now;
                 }
             }
         }
     }
 }
 
-bool a_peer::_receive(udp_xdea& s)
+int a_peer::_rec_udp(udp_xdea& s, time_t now)
 {
+    int bytes = s.rreceive((char*)_udpbuffer, MAX_UDP);
+    std::cout << ">" << Ip2str(s.Rsin()) << "\n";
+    if(bytes>=sizeof(SrvCap))
+    {
+        return _received(s,now, bytes);
+    }
+    return 0;
+}
+
+bool a_peer::_receive(udp_xdea& s, time_t now)
+{
+    ipp         newper;
     fd_set      rdSet;
-    int         bytes=0;
     int         nfds = (int)s.socket()+1;
-    timeval     tv   = {0,0xFFFF};
+    timeval     tv   = {0,1024};
 
     FD_ZERO(&rdSet);
     FD_SET(s.socket(), &rdSet);
@@ -99,141 +115,127 @@ bool a_peer::_receive(udp_xdea& s)
     if(sel < 0)
     {
         std::cout << "select fatal \r\n";
-        return false;
+        exit(errno);
     }
     if(sel > 0 && FD_ISSET(s.socket(), &rdSet))
     {
-        bytes = s.receive((char*)&_plin, (int)sizeof(_plin));
-        FD_CLR(s.socket(), &rdSet);
-        if(bytes==0)
-        {
-            return false;
-        }
+        int bytes = _rec_udp(s,now);
+    }
+    _proc_perrs(s);
+}
 
-        std::cout << " GOT " << bytes << " verb: "<< int(_plin._verb)<< "from port: "
-                  << int (s.Rsin().port())  <<"\n";
-        if(bytes == sizeof(_plin))
+bool a_peer::_received(udp_xdea& s, time_t now, int bytes)
+{
+    if(s.Rsin() == _srvsin)
+    {
+        SrvCap in;
+        int    off = 0;
+        while(bytes>0)
         {
-
-            switch(_plin._verb)
-            {
-            case SRV_REGISTERRED:
-                std::cout << "SRV REGISTERRED " << "\n";
-                _status = SRV_REGISTERRED;
-                _regtime = time(0);
-                break;
-            case SRV_PEERING:
-                std::cout << "SRV PEERING " << "\n";
-                _peering(s);
-                break;
-            case SRV_UNREGISTERED:
-                std::cout << "SRV RELEASED " << "\n";
-                _status = SRV_UNREGISTERED;
-                break;
-            case PER_PING:
-                std::cout << "PER_GOT PING FROM "<<Ip2str(s.Rsin().ip4raw())<<" \r\n";
-                _plout._verb = PER_PONG; //back
-                s.send((const uint8_t*)&_plout,sizeof(_plout), s.Rsin());
-                break;
-            case PER_PONG:
-                std::cout << "PER_ GOT PONG FROM (droping server) " <<Ip2str(s.Rsin().sin_addr.s_addr) <<" : "<<_plin._u.reg.meiot << " \r\n";
-                _per      = s.Rsin();
-                _status   = PER_PERRED;
-                _plout._verb = SRV_UNREGISTER;
-
-                s.send((const char*)&_plout,sizeof(_plout),SRV_PORT,SRV_IP);
-                std::cout << "LINKED to" << Ip2str(_per._a) << _per._p << "\n";
-                _pipe_it();
-                break;
-            default:
-                std::cout << "PER_ GOT " <<Ip2str(s.Rsin().ip4()) <<"\r\n";
-                break;
-            }
+            ed(_udpbuffer+off, (uint8_t*)&in, sizeof(SrvCap), __key, false);
+            _srv_process(s, in, now);
+            off+=sizeof(SrvCap);
+            bytes -= sizeof(SrvCap);
         }
-        else if(bytes > 0)
+        assert(bytes==0);
+    }
+    else
+    {
+        if(!_per_process(s, bytes, now))
         {
-            _status = _plin._verb;
-            std::cerr << "rejected "<< (int)_status  <<" \r\n";
-            exit(2);
+            //deny
         }
+    }
+    return true;
+}
+
+bool a_peer::_srv_process(udp_xdea& s, SrvCap&  plin, time_t now)
+{
+    switch(plin._verb)
+    {
+    case SRV_REGISTERRED:
+        std::cout << "SRV REGISTERRED " << "\n";
+        _status = SRV_REGISTERRED;
+        _regtime = time(0);
+        break;
+    case SRV_SET_PEER:
+        std::cout << "SRV SENT PEERING DATA" << "\n";
+        _peering(s, plin);
+        break;
+    case SRV_UNREGISTERED:
+        std::cout << "SRV RELEASED " << "\n";
+        _status = SRV_UNREGISTERED;
+        break;
+    case SRV_PING:
+        std::cout << "GOT SRV PING" << IP2STR(s.Rsin()) << "\n";
+        _pingtime = now;
+        break;
+    default:
+        std::cout << "invalid srv verb " << int(plin._verb) << " ," <<Ip2str(s.Rsin()) <<"\r\n";
+        break;
+    }
+    return true;
+}
+
+bool a_peer::_per_process(udp_xdea& s, int bytes, time_t now)
+{
+    SrvCap  pin;
+    ipp     newper;
+
+    assert(bytes >= sizeof(SrvCap));
+    ed(_udpbuffer, (uint8_t*)&pin, sizeof(pin), __key, false);
+
+    switch(pin._verb)
+    {
+    case PER_DATA:
+        _data_in(s, bytes);
+        break;
+
+    case PER_PING:
+        std::cout << "PER PING FROM "<<Ip2str(s.Rsin())<<" \r\n";
+        pin._verb = PER_PONG; //back
+        s.send((const uint8_t*)&pin,sizeof(pin), s.Rsin());
+        break;
+
+    case PER_PONG:
+        std::cout << "PONG to (LINKED) << "<<  Ip2str(s.Rsin()) << " \n";
+        _pers.insert(s.Rsin());
+        _status = PER_LINKED;
+        _show_pers(s);
+        break;
+    case SRV_PING:
+        std::cout << "GOT SRV PING" << IP2STR(s.Rsin()) << "\n";
+        _pingtime = now;
+        break;
+    default:
+        std::cout << "Invalid verb << "<< pin._verb <<"  form "<< Ip2str(s.Rsin()) << " \n";
+        break;
     }
     return true;
 }
 
 /*
  */
-void a_peer::_peering(udp_xdea& s)
+void a_peer::_peering(udp_xdea& s, SrvCap&  plin)
 {
-    std::cout << "PER PING "<<__perport <<"->"<< Ip2str(_plin._u.pp._private._a) <<
-                 ":"<<int(_plin._u.pp._private._p) << "\r\n";
+    std::cout << "PER PING "<<__perport <<"->"<< Ip2str(plin._u.pp._private._a) <<
+                 ":"<<int(plin._u.pp._private._p) << "\r\n";
 
-    std::cout << "PER PING "<<__perport <<"->"<<  Ip2str(_plin._u.pp._public._a) <<
-                 ":"<<int(_plin._u.pp._public._p) << "\r\n";
+    std::cout << "PER PING "<<__perport <<"->"<<  Ip2str(plin._u.pp._public._a) <<
+                 ":"<<int(plin._u.pp._public._p) << "\r\n";
 
-    _plin._verb = PER_PING;
-    s.send((const uint8_t*)&_plin, sizeof(_plin), _plin._u.pp._private);
-    s.send((const uint8_t*)&_plin, sizeof(_plin), _plin._u.pp._public);
+    plin._verb = PER_PING;
+    s.send((const uint8_t*)&plin, sizeof(plin), plin._u.pp._private);
+    s.send((const uint8_t*)&plin, sizeof(plin), plin._u.pp._public);
 }
 
-void a_peer::_io(udp_xdea& s, time_t now)
+bool a_peer::_data_in(udp_xdea& s, int bytes)
 {
-    fd_set      rdSet;
-    int         bytes=0;
-    int         nfds = (int)s.socket()+1;
-    timeval     tv   = {0,0xFFFF};
-    FILE*       po;
+    //check if rSIn { _pers
 
-    assert(_per._p);
-    if(now-_pingtime > PAIRING_TOUT)
-    {
-        _plout._verb = PER_AIH;
-        s.send((const uint8_t*)&_plout,sizeof(_plout), _per);
-        _pingtime = now;
-    }
-    ::usleep(128);
-    // select and such
-    uint8_t buff[MAX_UDP+1];
-
-
-    FD_ZERO(&rdSet);
-    FD_SET(s.socket(), &rdSet);
-    int sel = ::select(nfds, &rdSet, 0, 0, &tv);
-    if(sel < 0)
-    {
-        std::cout << "select fatal \r\n";
-        exit(5);
-    }
-    if(sel > 0 && FD_ISSET(s.socket(), &rdSet))
-    {
-        bytes = s.receive((char*)buff, (int)sizeof(buff));
-        FD_CLR(s.socket(), &rdSet);
-        if(bytes>0)
-        {
-            if(buff[0]!=PER_DATA)
-                goto SEND;
-            FILE* pi = ::popen(_infile.c_str(), "wb");
-            if(pi)
-            {
-                std::cout << "saving " << buff << "\n";
-                ::fwrite(buff+1, 1, bytes-1, pi);
-                ::pclose(pi);
-            }
-        }
-    }
-SEND:
-    po = ::popen(_outfile.c_str(), "wb");
-    if(po)
-    {
-        buff[0] = uint8_t(PER_DATA);
-        bytes  = ::fread(buff+1, 1, bytes, po);
-        ::pclose(po);
-        if(bytes)
-        {
-            std::cout << "reading " << buff << "\n";
-            s.send(buff,bytes+1,_per);
-            _pingtime = now;
-        }
-    }
+    _udpbuffer[bytes]=0;
+    std::cout << "got: " << _udpbuffer << "from:" << Ip2str(s.Rsin()) << "\n";
+    return true;
 }
 
 /**
@@ -245,9 +247,12 @@ SEND:
  */
 bool a_peer::snd(const uint8_t* pd, size_t l, bool crypt)
 {
+    UNUS(l);
+    UNUS(crypt);
     assert(pd[0]==PER_DATA);
 
     _pingtime = time(0);
+    return true;
 }
 
 /**
@@ -259,67 +264,32 @@ bool a_peer::snd(const uint8_t* pd, size_t l, bool crypt)
  */
 int  a_peer::rec(uint8_t* pd, size_t l, bool decrypt)
 {
+    UNUS(pd);
+    UNUS(l);
+    UNUS(decrypt);
+    return 0;
 }
 
-void  a_peer::_pipe_it()
+void a_peer::_i_am_here(udp_xdea& s)
 {
-    char pipefile[512];
-    const char * ip = Ip2str(_per._a);
-    ::sprintf(pipefile,"/tmp/peer_%s%s%d.in",_id.c_str(), ip, (int)_per._p);
-
-    if(::access(pipefile,0)==0)
-    {
-        ::unlink(pipefile);
-    }
-    else
-    {
-        int fi = ::mkfifo(pipefile, O_RDWR|O_NONBLOCK| S_IRWXU|S_IRWXG|S_IRWXG  );
-        if(fi<0)
-        {
-            perror("mkfifo");
-            exit(3);
-        }
-    }
-
-    int fdin = ::open (pipefile, O_RDWR|O_CREAT);
-    if(fdin<0)
-    {
-        std::cerr << pipefile << ": PIPE: " << strerror(errno);
-    }
-    else
-    {
-        ::fcntl(fdin, F_SETFL, O_NONBLOCK);
-        ::fcntl(fdin, F_SETPIPE_SZ, 1024 * 8912);
-    }
-    ::close(fdin);
-    _infile = pipefile;
-
-    ::sprintf(pipefile,"/tmp/peer_%s%s-%d.out",_id.c_str(), ip, _per._p);
-
-    if(::access(pipefile,0)==0)
-    {
-        ::unlink(pipefile);
-    }
-    else
-    {
-        int fi = ::mkfifo(pipefile, O_RDWR|O_NONBLOCK| S_IRWXU|S_IRWXG|S_IRWXG  );
-        if(fi<0)
-        {
-            perror("mkfifo");
-            exit(3);
-        }
-    }
-    fdin = ::open (pipefile, O_RDWR|O_CREAT);
-    if(fdin<0)
-    {
-        std::cerr << pipefile << ": PIPE: " << strerror(errno);
-    }
-    else
-    {
-        ::fcntl(fdin, F_SETFL, O_NONBLOCK);
-        ::fcntl(fdin, F_SETPIPE_SZ, 1024 * 8912);
-    }
-    ::close(fdin);
-    _outfile = pipefile;
-
+    _mecap._verb = PER_AIH;
+    std::cout << " pinging server \r\n";
+    s.send((const uint8_t*)&_mecap, sizeof(_mecap), _srvsin);
 }
+
+void a_peer::_show_pers(udp_xdea& s)
+{
+    std::cout << "------------------------------\n";
+    for(const auto& p : _pers)
+    {
+        std::cout << " PERED " << IP2STR(p) << "\n";
+    }
+    std::cout << "------------------------------\n";
+}
+
+void a_peer::_proc_perrs(udp_xdea& s)
+{
+    usleep(1000);
+}
+
+

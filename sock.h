@@ -82,7 +82,7 @@ class Ip2str
 {
 public:
     Ip2str(const SADDR_46& sa);
-    Ip2str(const u_int32_t dw);
+    Ip2str(u_int32_t dw);
     operator const char*()const{return _s;}
 private:
    char _s[128];
@@ -454,6 +454,7 @@ public:
     void            SetRsin(const  SADDR_46& in){::memcpy(&_remote_sin, &in, sizeof( SADDR_46));}
     int             connect(const char* sip, int port, CancelCB cbCall=sock::DefCBCall, void* pUser=0);
     int             set_rsin(const char* sip, int port);
+    int             set_rsin(const SADDR_46& r);
     int             bind(const char* ip=0, int port=0);
     SADDR_46&          remote(){return _remote_sin;}
     void            remote(SADDR_46& s){memcpy(&_remote_sin,&s,sizeof(s));}
