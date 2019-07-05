@@ -1333,6 +1333,7 @@ int  udp_sock::receive(unsigned char* buff, int length, int port, const char* ip
                                   0,
                                   (struct sockaddr  *) &_remote_sin,
                                   &iRecvLen);
+	std::cout << ">>" << _remote_sin.sin_port << "," << htons(_remote_sin.sin_port) << "\n";
 
         }
     }

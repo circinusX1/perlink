@@ -22,9 +22,21 @@ public:
     ~Sqliter(){
          sqlite3_close(_db);
     }
+
+    void commit()
+    {
+        char* szerr;
+        const char c[] = "COMMIT;";
+        ;int err  = sqlite3_exec(_db, (const char*)c, 0, 0, &szerr);
+        if( err != SQLITE_OK )
+        {
+            sqlite3_free(szerr);
+        }
+    }
 };
 
 
 
 
 #endif // SQLITER_H
+
