@@ -490,13 +490,8 @@ void u_server::_process(udp_xdea& s, SrvCap& pl)
         ipp priv(pl._u.reg.ipp);
         ipp pub(s.Rsin());
 
-<<<<<<< HEAD
-        std::cout<< "s<-c priv:" << IP2STR(priv._a) << " :" << htons(priv._p) << "\n";
-        std::cout<< "s<-c pubc:" << IP2STR(pub._a)  << " :" << htons(pub._p) << "\n";
-=======
         std::cout<< "REGISTERING: (LOCAL)" << priv.str() << "\n";
         std::cout<< "REGISTERING  (SEEN)"  << IP2STR(s.Rsin())  << "\n";
->>>>>>> eaeee67e25e0b750b94ca68a4cd7cdc2e6e4e68e
 
         if(pl._verb==SRV_REGISTER)
         {
