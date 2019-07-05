@@ -1,4 +1,4 @@
-
+#include <iostream>
 #include "udp_xdea.h"
 #include "per_id.h"
 
@@ -72,6 +72,8 @@ int udp_xdea::receive(char* buff, int length,   const  ipp& ipa)
     rsin.sin_family      = AF_INET;
     rsin.sin_addr.s_addr = htonl(ipa._a);
 
+    std::cout << "->>"<<  IP2STR(rsin) << "\n";
+
     int bytes = udp_sock::receive(_buff,length,rsin);
     if(bytes>0)
     {
@@ -85,8 +87,8 @@ int udp_xdea::receive(char* buff, int length,   const  ipp& ipa)
 int  udp_xdea::rsend(const uint8_t* buff, const int length, const  ipp& ipa)
 {
     SADDR_46 rsin;
-    rsin.sin_port        = htons (ipa._p);
     rsin.sin_family      = AF_INET;
+    rsin.sin_port        = htons (ipa._p);
     rsin.sin_addr.s_addr = htonl(ipa._a);
     return udp_sock::send(buff,length,rsin);
 }
@@ -97,6 +99,8 @@ int udp_xdea::rreceive(char* buff, int length, const  ipp& ipa)
     rsin.sin_port        = htons (ipa._p);
     rsin.sin_family      = AF_INET;
     rsin.sin_addr.s_addr = htonl(ipa._a);
+
+    std::cout << "<<-"<<  IP2STR(rsin) << "\n";
 
     int bytes = udp_sock::receive(buff,length,rsin);
     if(bytes>0)

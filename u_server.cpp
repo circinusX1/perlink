@@ -174,7 +174,7 @@ void u_server::_remove_peer(udp_xdea& s, SrvCap& pl, ipp& pub, ipp& priv)
     }
 }
 
-void u_server::_store_peer(udp_xdea& s, SrvCap& pl, ipp& pub, ipp& priv)
+void u_server::_store_peer(udp_xdea& s, SrvCap& pl, ipp& priv, ipp& pub)
 {
     char              shash[256];
     char              shash2[256];
@@ -351,7 +351,7 @@ void u_server::_ping_pers(udp_xdea& s, SrvCap& pl)
     {
         if(_apply_key(s, p._a))
         {
-            std::cout << " PINGING " << p.str() << ": " << (const char*)pl._u.reg.meiot << "\n";
+            std::cout << " PINGING " << p.str() << "\n";
             s.send((const uint8_t*)&pl, sizeof(pl), p);
         }
     }
@@ -487,11 +487,11 @@ void u_server::_process(udp_xdea& s, SrvCap& pl)
     {
         assert(__meikey == pl._u.reg.meiot);
 
-        ipp pub(pl._u.reg.ipp);
-        ipp priv(s.Rsin());
+        ipp priv(pl._u.reg.ipp);
+        ipp pub(s.Rsin());
 
-        std::cout<< "s<-c pri:" << IP2STR(priv._a) << " :" << htons(priv._p) << "\n";
-        std::cout<< "s<-c pub:" << IP2STR(pub._a)  << " :" << htons(pub._p) << "\n";
+        std::cout<< "s<-c priv:" << IP2STR(priv._a) << " :" << htons(priv._p) << "\n";
+        std::cout<< "s<-c pubc:" << IP2STR(pub._a)  << " :" << htons(pub._p) << "\n";
 
         if(pl._verb==SRV_REGISTER)
         {

@@ -9,6 +9,7 @@
 bool __alive = true;
 int  __perport = CLI_PORT;
 std::string __srvip=SRV_IP;
+bool __provider=false;
 
 static void _tokeys(const std::string&  meiot, uint32_t keys[4])
 {
@@ -29,6 +30,7 @@ int main(int argc, char *argv[])
                 __perport=::atoi(argv[3]);
             if(argc==5)
                 __srvip=argv[4];
+            __provider = strstr(argv[2],"p:");
             a_peer per(argv[2]);
             per.main();
         }
