@@ -38,6 +38,7 @@ private:
     void _test();
     void _update_db(udp_xdea& s, SrvCap& pl);
     void _delete_olies();
+    bool _apply_key(udp_xdea& s, uint32_t sin);
 private:
     std::thread*        _t;
     sqlite3             *_db = nullptr;

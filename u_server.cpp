@@ -325,6 +325,7 @@ void u_server::_ping_pers(udp_xdea& s, SrvCap& pl)
     char              *szerr;
     char              sper[128];
     Sqliter          __sq(&_db,__LINE__);
+    std::vector<ipp>  pers;
 
     std::string sql = "SELECT PA,PP FROM pers;";
     if ( sqlite3_prepare(_db, sql.c_str(), -1, &statement, 0 ) == SQLITE_OK )
@@ -339,16 +340,44 @@ void u_server::_ping_pers(udp_xdea& s, SrvCap& pl)
             }
             if ( res == SQLITE_ROW )
             {
-                uint32_t puba = sqlite3_column_int(statement, 0);
-                int   pubp = sqlite3_column_int(statement, 1);
-                ipp   pubaddr(puba,pubp);
-
-                std::cout << " PINGING " << pubaddr.str() << "\n";
-                s.send((const uint8_t*)&pl,sizeof(pl),pubaddr);
+                ipp per(sqlite3_column_int(statement, 0),sqlite3_column_int(statement, 1));
+                pers.push_back(per);
             }
         }
         sqlite3_reset(statement);
     }
+    pl._verb = SRV_PING;
+    for(const auto& p : pers)
+    {
+        if(_apply_key(s, p._a))
+        {
+            std::cout << " PINGING " << p.str() << ": " << (const char*)pl._u.reg.meiot << "\n";
+            s.send((const uint8_t*)&pl, sizeof(pl), p);
+        }
+    }
+}
+
+bool u_server::_apply_key(udp_xdea& s, uint32_t sin)
+{
+    Sqliter          __sq(&_db,__LINE__);
+    sqlite3_stmt    *statement;
+    uint32_t        keys[4] = {0,0,0,0};
+
+    std::string sql = "SELECT mid FROM mid WHERE ip=";
+    sql += std::to_string(s.Rsin().ip4()) + " OR ip='0' LIMIT 1;";
+    if ( sqlite3_prepare(_db, sql.c_str(), -1, &statement, 0 ) == SQLITE_OK )
+    {
+        int res = sqlite3_step(statement);
+        if ( res == SQLITE_ROW )
+        {
+            std::string meiot = (const char*)sqlite3_column_text(statement, 0);
+            _tokeys(meiot, keys);
+            s.set_keys(keys);
+            return true;
+        }
+    }
+    s.set_keys(keys);
+    return false;
 }
 
 bool u_server::_auth(udp_xdea& s, SrvCap& pl)
@@ -389,7 +418,6 @@ bool u_server::_auth(udp_xdea& s, SrvCap& pl)
         }
         sqlite3_reset(statement);
     }
-    _db=0;
     return ret;
 }
 
@@ -442,12 +470,9 @@ void u_server::_deny(udp_xdea& s)
                 std::cerr << szerr << "\n";
                 sqlite3_free(szerr);
             }
-
         }
         sqlite3_finalize(statement);
     }
-
-    _db=0;
 }
 
 void u_server::_process(udp_xdea& s, SrvCap& pl)
@@ -462,8 +487,8 @@ void u_server::_process(udp_xdea& s, SrvCap& pl)
     {
         assert(__meikey == pl._u.reg.meiot);
 
-        ipp priv(pl._u.reg.ipp);
-        ipp pub(s.Rsin());
+        ipp pub(pl._u.reg.ipp);
+        ipp priv(s.Rsin());
 
         std::cout<< "s<-c pri:" << IP2STR(priv._a) << " :" << htons(priv._p) << "\n";
         std::cout<< "s<-c pub:" << IP2STR(pub._a)  << " :" << htons(pub._p) << "\n";
@@ -524,8 +549,6 @@ void u_server::_test()
         std::cerr << __LINE__ << ": " << szerr << "\n";
         sqlite3_free(szerr);
     }
-
-    _db=0;
 }
 
 /**
@@ -554,7 +577,5 @@ void u_server::_update_db(udp_xdea& s, SrvCap& pl)
         std::cerr << szerr << "\n";
         sqlite3_free(szerr);
     }
-
-    _db=0;
 }
 
