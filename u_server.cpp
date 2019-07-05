@@ -22,11 +22,10 @@ static void _tokeys(const std::string&  meiot, uint32_t keys[4])
 
 u_server::u_server(const char* key)
 {
-
     Sqliter __sq(&_db,__LINE__);
 
     char *szerr = nullptr;
-    sqlite3_busy_timeout(_db, 1024);
+    sqlite3_busy_timeout(_db, 4096);
     std::string sql =  "CREATE TABLE IF NOT EXISTS 'mid' (Id integer primary key autoincrement,"
                        "D DATETIME NOT NULL,"
                        "mid TEXT NOT NULL,"
@@ -269,6 +268,7 @@ void u_server::_store_peer(udp_xdea& s, SrvCap& pl, ipp& pub, ipp& priv)
     {
         std::cerr << __LINE__ << ": " << szerr << "\n";
         sqlite3_free(szerr);
+        __sq.commit();
 
         sql = "UPDATE pers SET D=";
         sql += "datetime('now')";
@@ -281,8 +281,8 @@ void u_server::_store_peer(udp_xdea& s, SrvCap& pl, ipp& pub, ipp& priv)
             std::cerr << __LINE__ << ": " << szerr << "\n";
             sqlite3_free(szerr);
         }
+        __sq.commit();
     }
-
 
     tper p;
     p._type = pl._u.reg.typ;
