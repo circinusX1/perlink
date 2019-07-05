@@ -39,3 +39,4 @@ public:
 
 
 #endif // SQLITER_H
+
