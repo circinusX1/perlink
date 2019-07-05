@@ -272,9 +272,8 @@ void a_peer::_peering(udp_xdea& s, SrvCap&  plin)
 bool a_peer::_data_in(udp_xdea& s, int bytes)
 {
     //check if rSIn { _pers
-
     _udpbuffer[bytes]=0;
-    std::cout << "got: " << _udpbuffer << "from:" << Ip2str(s.Rsin()) << "\n";
+    std::cout << "DATA : " << _udpbuffer+1 << "from:" << Ip2str(s.Rsin()) << "\n";
     return true;
 }
 
@@ -287,12 +286,10 @@ bool a_peer::_data_in(udp_xdea& s, int bytes)
  */
 void a_peer::send_to_pers(udp_xdea& s, const char* data, size_t len ,bool encrypt)
 {
-
     for(const auto& p : _pers)
     {
         s.udp_sock::send(data,len,p);
     }
-
 }
 
 /**
@@ -313,9 +310,8 @@ int  a_peer::rec(uint8_t* pd, size_t l, bool decrypt)
 void a_peer::_i_am_here(udp_xdea& s)
 {
     _mecap._verb = PER_AIH;
-  //  std::cout << "pinging server \r\n";
-    
-  //TODO  s.send((const uint8_t*)&_mecap, sizeof(_mecap), _srvsin);
+    std::cout << "pinging server \r\n";
+    s.send((const uint8_t*)&_mecap, sizeof(_mecap), _srvsin);
 }
 
 void a_peer::_show_pers(udp_xdea& s)
