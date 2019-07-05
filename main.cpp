@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
@@ -7,6 +8,7 @@
 
 bool __alive = true;
 int  __perport = CLI_PORT;
+std::string __srvip=SRV_IP;
 
 static void _tokeys(const std::string&  meiot, uint32_t keys[4])
 {
@@ -25,6 +27,8 @@ int main(int argc, char *argv[])
             std::cout << __key[0] << __key[1] <<__key[2] <<__key[3] << "\n";
             if(argc==4)
                 __perport=::atoi(argv[3]);
+            if(argc==5)
+                __srvip=argv[4];
             a_peer per(argv[2]);
             per.main();
         }

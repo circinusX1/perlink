@@ -12,6 +12,7 @@
 
 
 extern int __perport;
+extern std::string __srvip;
 
 a_peer::a_peer(const char* id):_id(id)
 {
@@ -36,7 +37,7 @@ void a_peer::main()
     time_t      iah = 0;
 
     _pingtime = now;
-    _srvsin.from_string(SRV_IP, SRV_PORT);
+    _srvsin.from_string(__srvip.c_str(), SRV_PORT);
     strcpy(_mecap._u.reg.meiot,__meikey.c_str());
     strcpy(_mecap._u.reg.id,_id.c_str());
     _mecap._u.reg.typ = _type;
@@ -122,6 +123,7 @@ bool a_peer::_receive(udp_xdea& s, time_t now)
         int bytes = _rec_udp(s,now);
     }
     _proc_perrs(s);
+    return true;
 }
 
 bool a_peer::_received(udp_xdea& s, time_t now, int bytes)
@@ -133,6 +135,7 @@ bool a_peer::_received(udp_xdea& s, time_t now, int bytes)
         while(bytes>0)
         {
             ed(_udpbuffer+off, (uint8_t*)&in, sizeof(SrvCap), __key, false);
+            std::cout << "got " << bytes <<", "<< " bytes \n";
             _srv_process(s, in, now);
             off+=sizeof(SrvCap);
             bytes -= sizeof(SrvCap);
@@ -159,7 +162,7 @@ bool a_peer::_srv_process(udp_xdea& s, SrvCap&  plin, time_t now)
         _regtime = time(0);
         break;
     case SRV_SET_PEER:
-        std::cout << "SRV SENT PEERING DATA" << "\n";
+        std::cout << "SRV SENT PEERING DATA \n";
         _peering(s, plin);
         break;
     case SRV_UNREGISTERED:
@@ -171,7 +174,8 @@ bool a_peer::_srv_process(udp_xdea& s, SrvCap&  plin, time_t now)
         _pingtime = now;
         break;
     default:
-        std::cout << "invalid srv verb " << int(plin._verb) << " ," <<Ip2str(s.Rsin()) <<"\r\n";
+        std::cout << "invalid srv verb " << int(plin._verb) << " from " << Ip2str(s.Rsin()) <<"\r\n";
+        std::cout <<  (const char*)plin._u.reg.meiot <<"\r\n";
         break;
     }
     return true;

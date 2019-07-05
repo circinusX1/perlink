@@ -342,6 +342,7 @@ void u_server::_ping_pers(udp_xdea& s, SrvCap& pl)
                 uint32_t puba = sqlite3_column_int(statement, 0);
                 int   pubp = sqlite3_column_int(statement, 1);
                 ipp   pubaddr(puba,pubp);
+
                 std::cout << " PINGING " << pubaddr.str() << "\n";
                 s.send((const uint8_t*)&pl,sizeof(pl),pubaddr);
             }
