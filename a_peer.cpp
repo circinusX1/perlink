@@ -273,7 +273,8 @@ int  a_peer::rec(uint8_t* pd, size_t l, bool decrypt)
 void a_peer::_i_am_here(udp_xdea& s)
 {
     _mecap._verb = PER_AIH;
-    std::cout << " pinging server \r\n";
+    std::cout << "pinging server \r\n";
+    
     s.send((const uint8_t*)&_mecap, sizeof(_mecap), _srvsin);
 }
 

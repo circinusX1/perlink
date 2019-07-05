@@ -341,9 +341,10 @@ void u_server::_ping_pers(udp_xdea& s, SrvCap& pl)
             {
                 uint32_t puba = sqlite3_column_int(statement, 0);
                 int   pubp = sqlite3_column_int(statement, 1);
-                ipp   pubaddr(puba,pubp);
-                std::cout << " PINGING " << pubaddr.str() << "\n";
-                s.send((const uint8_t*)&pl,sizeof(pl),pubaddr);
+                ipp   pubaddr(puba, pubp);
+                std::cout << " PINGING " << pubaddr.str() << ": " << (const char*)pl._u.reg.meiot << "\n";
+                pl._verb = SRV_PING;
+                s.send((const uint8_t*)&pl, sizeof(pl), pubaddr);
             }
         }
         sqlite3_reset(statement);
@@ -461,8 +462,8 @@ void u_server::_process(udp_xdea& s, SrvCap& pl)
     {
         assert(__meikey == pl._u.reg.meiot);
 
-        ipp priv(pl._u.reg.ipp);
-        ipp pub(s.Rsin());
+        ipp pub(pl._u.reg.ipp);
+        ipp priv(s.Rsin());
 
         std::cout<< "s<-c pri:" << IP2STR(priv._a) << " :" << htons(priv._p) << "\n";
         std::cout<< "s<-c pub:" << IP2STR(pub._a)  << " :" << htons(pub._p) << "\n";
