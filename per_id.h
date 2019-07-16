@@ -19,29 +19,31 @@
 #define DB_FILE         "/usr/share/perlink/perlink.db"
 
 struct ipp{
-    uint32_t _a;
-    int      _p;
-
+    uint32_t  _a;
+    int       _p;
+    int       _t;
+    uint32_t  _keys[4];
     ipp():_a(0),_p(0){}
-    ipp(const char* a, int p){
+    ipp(const char* a, int p,int t){
         _a = (uint32_t)(htonl(inet_addr(a)));
         _p = (int)((p));
+        _t = t;
     }
-    ipp(uint32_t a, int p):_a(a), _p(p){}
-    ipp(const ipp& r):_a(r._a), _p(r._p){}
+    ipp(uint32_t a, int p, int t):_a(a), _p(p),_t(t){}
+    ipp(const ipp& r):_a(r._a), _p(r._p),_t(r._t){::memcpy(_keys,r._keys,sizeof(_keys));}
     ipp(struct SADDR_46& sa):_a(htonl(sa.sin_addr.s_addr)), _p(htons(sa.sin_port)){}
     ipp(struct sockaddr_in& sa):_a(htonl(sa.sin_addr.s_addr)), _p(htons(sa.sin_port)){}
-    bool operator==(const ipp& r){return _a==r._a && _p==r._p;}
-    const ipp& operator=(const ipp& r){_a = r._a; _p = r._p; return *this;}
+    bool operator==(const ipp& r){return _a==r._a && _p==r._p && _t==r._t; }
+    const ipp& operator=(const ipp& r){_a = r._a; _p = r._p; ::memcpy(_keys,r._keys,sizeof(_keys)); return *this;}
     const ipp& operator=(const sockaddr_in& r){_a = htonl(r.sin_addr.s_addr);_p = htons(r.sin_port); return *this;}
-
     std::string str()const{
         std::string ret = std::string(Ip2str(htonl(_a)));
         ret += ":";
         ret += std::to_string(htons(_p));
+        ret += ":";
+        ret += std::to_string(htons(_t));
         return ret;
     }
-
 }__attribute__ ((aligned));
 
 
@@ -89,7 +91,7 @@ extern std::string  __meikey;
 
 
 enum {
-    SRV_REGISTER=0,
+    SRV_REGISTER=1,
     SRV_REGISTERRED,
     SRV_SET_PEER,
     SRV_UNREGISTER,
@@ -119,18 +121,16 @@ struct  SrvCap
     {
         U(){}
         struct {
-            char meiot[58];
-            struct ipp  ipp;
-            bool        typ;      // Publisher true Consumenr false
-            char        id[16];
+            char    meiot[58];
+            bool    typ;      // Publisher true Consumenr false
+            char    id[16];
         }   reg;
 
         struct
         {
-            ipp         _public;
-            ipp         _private;
-            bool        _typ;      // Publisher true COnsumenr false
-            char        _id[16];
+            ipp     _public;
+            bool    _typ;      // Publisher true COnsumenr false
+            char    _id[16];
         } pp;
 
     } _u;
@@ -150,6 +150,7 @@ struct  SrvCap
         ::memcpy(this, &r,sizeof(*this));
         return *this;
     }
+    void clear(){memset(&_u,0,sizeof(_u));}
 }__attribute__ ((aligned));
 
 

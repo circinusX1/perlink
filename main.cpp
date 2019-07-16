@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
     {
         if( ::strchr(argv[2],':'))
         {
+            std::cout << "CLIENT  \n";
             _tokeys(__meikey,__key);
             std::cout << __key[0] << __key[1] <<__key[2] <<__key[3] << "\n";
             if(argc==4)
@@ -46,6 +47,7 @@ int main(int argc, char *argv[])
 
         if(argv[1][0]=='s')
         {
+            std::cout << "SERVER  \n";
             u_server u(argv[2]);
             u.main();
         }

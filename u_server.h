@@ -27,22 +27,22 @@ public:
     void main();
 
 private:
-    void _store_peer(udp_xdea& s, SrvCap& pl, ipp& pub, ipp& priv);
-    void _remove_peer(udp_xdea& s, SrvCap& pl, ipp& pub, ipp& priv);
+    void _store_peer(udp_xdea& s, SrvCap& pl, ipp& pub,const uint32_t *keys);
+    void _remove_peer(udp_xdea& s, SrvCap& pl, ipp& pub);
     void _ping_pers(udp_xdea& s, SrvCap& pl);
 
-    bool _auth(udp_xdea& s, SrvCap& pl);
+    bool _auth(udp_xdea& s, SrvCap& pl, uint32_t keys[4]);
     void _deny(udp_xdea& s);
-    void _process(udp_xdea& s, SrvCap& pl);
+    void _process(udp_xdea& s, SrvCap& pl,const uint32_t* keys);
     void _ufw_reject(uint32_t ip);
     void _test();
     void _update_db(udp_xdea& s, SrvCap& pl);
     void _delete_olies();
-    bool _apply_key(udp_xdea& s, uint32_t sin);
 private:
     std::thread*        _t;
     sqlite3             *_db = nullptr;
     SrvCap              _prev;
+    bool                _dirty=false;
 };
 
 #endif // U_SERVER_H

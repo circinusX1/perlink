@@ -49,16 +49,19 @@ u_server::u_server(const char* key)
     /**
     pairs
 */
-    sql =  "CREATE TABLE IF NOT EXISTS 'pers' (Id integer primary key autoincrement,"
-           "D  DATETIME NOT NULL,"
-           "I  TEXT,"
-           "K  INTEGER UNIQUE,"
-           "PA  INTEGER,"
-           "RA  INTEGER,"
-           "PP  INTEGER,"
-           "RP  INTEGER,"
-           "T  INTEGER,"
-           "R Integer);";
+    sql =   "CREATE TABLE IF NOT EXISTS 'pers' (Id integer primary key autoincrement,"
+            "D  DATETIME NOT NULL,"
+            "I  TEXT,"
+            "K  INTEGER UNIQUE,"
+            "PA  INTEGER,"
+            "PP  INTEGER,"
+            "T  INTEGER,"
+            "R Integer,"
+            "MK0 Integer,"
+            "MK1 Integer,"
+            "MK2 Integer,"
+            "MK3 Integer);";
+
     rc = sqlite3_exec(_db, sql.c_str(), 0, 0, &szerr);
     if( rc != SQLITE_OK )
     {
@@ -94,6 +97,7 @@ void u_server::main()
     fd_set          rdSet;
     int             nfds;// = (int)s.socket()+1;
     timeval         tv;//   = {0,1024};
+    uint32_t        keys[4];
 
     if(s.create(SRV_PORT))
     {
@@ -103,7 +107,6 @@ void u_server::main()
             SADDR_46 rem;
 
             now = time(0);
-            s.set_keys(nullptr);
 
             FD_ZERO(&rdSet);
             FD_SET(s.socket(), &rdSet);
@@ -118,24 +121,25 @@ void u_server::main()
             }
             if(sel > 0 && FD_ISSET(s.socket(), &rdSet))
             {
-                int by = s.rreceive((char*)&pl,sizeof(pl));
+                int by = s.udp_sock::receive((char*)&pl,sizeof(pl));
                 if(by == sizeof(pl))
                 {
-                    if(!_auth(s, pl))
+                    if(!_auth(s, pl,keys))
                     {
                         _deny(s);
                     }
                     else
                     {
-                        _process(s, pl);
+                        _process(s, pl,keys);
                     }
                 }
             }
-            if(now - pingpers > TTLIVE)
+            if(now - pingpers > TTLIVE || _dirty)
             {
                 pingpers=now;
                 _ping_pers(s, pl);
                 memset(&_prev,0,sizeof(_prev));
+                _dirty = false;
             }
         }
     }
@@ -152,12 +156,16 @@ void u_server::_delete_olies()
         std::cerr << __LINE__ << ": " << szerr << "\n";
         sqlite3_free(szerr);
     }
+    else
+    {
+        _dirty=true;
+    }
 }
 
-void u_server::_remove_peer(udp_xdea& s, SrvCap& pl, ipp& pub, ipp& priv)
+void u_server::_remove_peer(udp_xdea& s, SrvCap& pl, ipp& pub)
 {
     char              shash[256];
-    ::sprintf(shash,"%s,%s", pl._u.pp._public.str().c_str(), pl._u.pp._private.str().c_str());
+    ::sprintf(shash,"%s", pl._u.pp._public.str().c_str());
     std::size_t crc_hash = std::hash<std::string>{}(shash);
     sqlite3_stmt      *statement;
     char              *szerr;
@@ -172,18 +180,21 @@ void u_server::_remove_peer(udp_xdea& s, SrvCap& pl, ipp& pub, ipp& priv)
         std::cerr << __LINE__ << ": " << szerr << "\n";
         sqlite3_free(szerr);
     }
+    else
+    {
+        _dirty=true;
+    }
 }
 
-void u_server::_store_peer(udp_xdea& s, SrvCap& pl, ipp& priv, ipp& pub)
+void u_server::_store_peer(udp_xdea& s, SrvCap& pl, ipp& pub, const uint32_t* keys)
 {
     char              shash[256];
     char              shash2[256];
-    ::sprintf(shash2,"%d%d%d%d%s", pub._a, priv._a, pub._p, priv._p, pl._u.reg.id);
+    ::sprintf(shash2,"%d%d%s%d%d%%d%d%", pub._a,  pub._p, pl._u.reg.id,keys[0],keys[1],keys[2],keys[3]);
     std::size_t crc_hash = std::hash<std::string>{}(shash2);
     sqlite3_stmt      *statement;
     char              *szerr;
     int               refs = 0;
-    std::vector<tper> pers;
     bool              newreck;
     Sqliter          __sq(&_db,__LINE__);
 
@@ -197,7 +208,7 @@ void u_server::_store_peer(udp_xdea& s, SrvCap& pl, ipp& priv, ipp& pub)
         std::cerr << DB_PATH <<  sqlite3_errmsg(_db) << "\n";
         exit (1);
     }
-    std::string sql = "SELECT R,PA,RA,PP,RP,T FROM pers WHERE I='";
+    std::string sql = "SELECT R,PA,PP,T FROM pers WHERE I='";
     sql += (const char*)(pl._u.reg.id+2); sql += "';";
 
     std::cout << sql << "\n";
@@ -218,17 +229,14 @@ void u_server::_store_peer(udp_xdea& s, SrvCap& pl, ipp& priv, ipp& pub)
             }
             if ( res == SQLITE_ROW )
             {
-                char sper[128];
-                tper p;
-                refs = sqlite3_column_int(statement, 0);
+                char        sper[128];
+                tper        p;
+
+                refs          = sqlite3_column_int(statement, 0);
                 uint32_t puba = sqlite3_column_int(statement, 1);
-                uint32_t priva = sqlite3_column_int(statement, 2);
-                int   pubp = sqlite3_column_int(statement, 3);
-                int   privp = sqlite3_column_int(statement, 4);
-                p._pub = ipp(puba,pubp);
-                p._priv = ipp(priva,privp);
-                p._type = sqlite3_column_int(statement, 5);
-                pers.push_back(p);
+                p._pub        = ipp(sqlite3_column_int(statement, 1),
+                                     sqlite3_column_int(statement, 2),
+                                     sqlite3_column_int(statement, 3));
             }
         }
         sqlite3_reset(statement);
@@ -244,24 +252,25 @@ void u_server::_store_peer(udp_xdea& s, SrvCap& pl, ipp& priv, ipp& pub)
            "I  TEXT,"
            "K  INTEGER UNIQUE,"
            "PA  INTEGER,"
-           "RA  INTEGER,"
            "PP  INTEGER,"
-           "RP  INTEGER,"
            "T  INTEGER,"
            "R Integer);";
 
     */
 
-    sql = "INSERT INTO pers  (D,I,K,PA,RA,PP,RP,T,R) VALUES (";
-    sql += "datetime('now')";       sql += ",'";           // date
-    sql += (pl._u.reg.id+2);  sql += "',";       // ID/NAME
-    sql += std::to_string(crc_hash); sql += ","; // KRC
+    sql = "INSERT INTO pers (D,I,K,PA,PP,T,R,MK0,MK1,MK2,MK3) VALUES (";
+    sql += "datetime('now')";            sql += ",'";           // date
+    sql += (pl._u.reg.id+2);             sql += "',";       // ID/NAME
+    sql += std::to_string(crc_hash);     sql += ","; // KRC
     sql += std::to_string(pub._a);       sql += ",";     // date
-    sql += std::to_string(priv._a);       sql += ",";     // date
     sql += std::to_string(pub._p);       sql += ",";     // date
-    sql += std::to_string(priv._p);       sql += ",";     // date
-    sql += std::to_string(pl._u.reg.typ);     sql += ",";
-    sql += std::to_string(refs); sql += ");";
+    sql += std::to_string(pl._u.reg.typ);sql += ",";
+    sql += std::to_string(refs);         sql += ",";
+    sql += std::to_string(keys[0]);         sql += ",";
+    sql += std::to_string(keys[1]);         sql += ",";
+    sql += std::to_string(keys[2]);         sql += ",";
+    sql += std::to_string(keys[3]);         sql += ");";
+
     std::cout << sql << "\n";
     int res  = sqlite3_exec(_db, sql.c_str(), 0, 0, &szerr);
     if( res != SQLITE_OK )
@@ -283,39 +292,13 @@ void u_server::_store_peer(udp_xdea& s, SrvCap& pl, ipp& priv, ipp& pub)
         }
         __sq.commit();
     }
-
-    tper p;
-    p._type = pl._u.reg.typ;
-    p._pub = pub;
-    p._priv = priv;
-    pers.push_back(p);
-
-    // notify this was registerred
-    pl._verb = SRV_REGISTERRED;
-    s.send((const uint8_t*)&pl,sizeof(pl), s.Rsin());
-
-    pl._verb=SRV_SET_PEER;
-    for(const auto& p : pers)
+    else
     {
-        for(const auto& q : pers)
-        {
-            if(p._type != q._type)
-            {
-                pl._u.pp._typ=p._type;
-                pl._u.pp._public=p._pub;
-                pl._u.pp._private=p._priv;
-
-                s.send((const uint8_t*)&pl, sizeof(pl), q._pub);
-                s.send((const uint8_t*)&pl, sizeof(pl), q._priv);
-
-                pl._u.pp._typ=q._type;
-                pl._u.pp._public=q._pub;
-                pl._u.pp._private=q._priv;
-
-                s.send((const uint8_t*)&pl, sizeof(pl), p._pub);
-                s.send((const uint8_t*)&pl, sizeof(pl), p._priv);
-            }
-        }
+        // notify this was registerred
+        pl._verb = SRV_REGISTERRED;
+        pl.clear();
+        s.send((const uint8_t*)&pl,sizeof(pl), s.Rsin(),keys);
+        _dirty=true;
     }
 }
 
@@ -327,7 +310,7 @@ void u_server::_ping_pers(udp_xdea& s, SrvCap& pl)
     Sqliter          __sq(&_db,__LINE__);
     std::vector<ipp>  pers;
 
-    std::string sql = "SELECT PA,PP FROM pers;";
+    std::string sql = "SELECT PA,PP,T,MK0,MK1,MK2,MK3 FROM pers;";
     if ( sqlite3_prepare(_db, sql.c_str(), -1, &statement, 0 ) == SQLITE_OK )
     {
         pl._verb = SRV_PING;
@@ -340,53 +323,47 @@ void u_server::_ping_pers(udp_xdea& s, SrvCap& pl)
             }
             if ( res == SQLITE_ROW )
             {
-                ipp per(sqlite3_column_int(statement, 0),sqlite3_column_int(statement, 1));
+                ipp per(sqlite3_column_int(statement, 0),
+                        sqlite3_column_int(statement, 1),
+                        sqlite3_column_int(statement, 2));
+                per._keys[0] = sqlite3_column_int(statement, 3);
+                per._keys[1] = sqlite3_column_int(statement, 4);
+                per._keys[2] = sqlite3_column_int(statement, 5);
+                per._keys[3] = sqlite3_column_int(statement, 6);
+
                 pers.push_back(per);
             }
         }
         sqlite3_reset(statement);
     }
-    pl._verb = SRV_PING;
+
+
     for(const auto& p : pers)
     {
-        if(_apply_key(s, p._a))
+        pl._verb = SRV_PING;
+        s.send((const uint8_t*)&pl, sizeof(pl), p);
+
+        for(const auto& q : pers)
         {
-            std::cout << " PINGING " << p.str() << "\n";
-            s.send((const uint8_t*)&pl, sizeof(pl), p);
+            pl._verb = SRV_SET_PEER;
+            if(p._t != q._t)
+            {
+                pl._u.pp._public=p;
+                s.send((const uint8_t*)&pl, sizeof(pl), q);
+
+                pl._u.pp._public=q;
+                s.send((const uint8_t*)&pl, sizeof(pl), p);
+            }
         }
     }
 }
 
-bool u_server::_apply_key(udp_xdea& s, uint32_t sin)
-{
-    Sqliter          __sq(&_db,__LINE__);
-    sqlite3_stmt    *statement;
-    uint32_t        keys[4] = {0,0,0,0};
-
-    std::string sql = "SELECT mid FROM mid WHERE ip=";
-    sql += std::to_string(s.Rsin().ip4()) + " OR ip='0' LIMIT 1;";
-    if ( sqlite3_prepare(_db, sql.c_str(), -1, &statement, 0 ) == SQLITE_OK )
-    {
-        int res = sqlite3_step(statement);
-        if ( res == SQLITE_ROW )
-        {
-            std::string meiot = (const char*)sqlite3_column_text(statement, 0);
-            _tokeys(meiot, keys);
-            s.set_keys(keys);
-            return true;
-        }
-    }
-    s.set_keys(keys);
-    return false;
-}
-
-bool u_server::_auth(udp_xdea& s, SrvCap& pl)
+bool u_server::_auth(udp_xdea& s, SrvCap& pl, uint32_t keys[4])
 {
     SrvCap          plclear;
     sqlite3_stmt    *statement;
     bool            ret = false;
     std::string     meiot;
-    uint32_t        keys[4];
     Sqliter          __sq(&_db,__LINE__);
 
     std::string sql = "SELECT mid FROM mid WHERE ip=";
@@ -410,7 +387,6 @@ bool u_server::_auth(udp_xdea& s, SrvCap& pl)
                 if(meiot == plclear._u.reg.meiot)
                 {
                     ::memcpy(&pl, &plclear, sizeof(pl));
-                    s.set_keys(keys);
                     ret = true;
                     break;
                 }
@@ -475,7 +451,7 @@ void u_server::_deny(udp_xdea& s)
     }
 }
 
-void u_server::_process(udp_xdea& s, SrvCap& pl)
+void u_server::_process(udp_xdea& s, SrvCap& pl, const uint32_t *keys)
 {
     std::cout <<__FUNCTION__ << ": verb: " << int(pl._verb) << "\n";
 
@@ -485,28 +461,22 @@ void u_server::_process(udp_xdea& s, SrvCap& pl)
     }
     else if(pl._verb == SRV_REGISTER)
     {
-        assert(__meikey == pl._u.reg.meiot);
-
-        ipp priv(pl._u.reg.ipp);
         ipp pub(s.Rsin());
 
-        std::cout<< "REGISTERING: (LOCAL)" << priv.str() << "\n";
         std::cout<< "REGISTERING  (SEEN)"  << IP2STR(s.Rsin())  << "\n";
-
         if(pl._verb==SRV_REGISTER)
         {
-            _store_peer(s, pl, priv, pub);
+            _store_peer(s, pl, pub, keys);
         }
     }
     else if(pl._verb == SRV_UNREGISTER)
     {
-        ipp priv(pl._u.reg.ipp);
         ipp pub(s.Rsin());
 
         std::cout << " dropping " << (pl._u.reg.id) << "\n";
         pl._verb = SRV_UNREGISTERED;
         s.send((const uint8_t*)&pl, sizeof(pl), s.Rsin());
-        _remove_peer(s, pl, pub, priv);
+        _remove_peer(s, pl, pub);
     }
     else
     {

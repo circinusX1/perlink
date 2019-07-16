@@ -77,7 +77,7 @@ void a_peer::main()
 
     if(s.socket()>0)
     {
-        std::cout << "on port" << __perport << "\n";
+        std::cout << "on port:" << __perport << "\n";
         while(__alive)
         {
             now = time(0);
@@ -88,9 +88,8 @@ void a_peer::main()
                 {
                     _regtime = now;
                     _mecap._verb = SRV_REGISTER;
-                    _mecap._u.reg.ipp = ipp(sock::GetLocalIP("127.0.0.1"), __perport);
-                    std::cout << " REGIST: " << _mecap._u.reg.ipp.str() << "\n";
-                    if(0==s.send((const uint8_t*)&_mecap,sizeof(_mecap),_srvsin))
+
+                    if(0==s.send((const uint8_t*)&_mecap,sizeof(_mecap),_srvsin,__key))
                     {
                         std::cout << "no server \r\n";
                         break;
@@ -102,6 +101,7 @@ void a_peer::main()
             {
                 iah = now;
                 _i_am_here(s);
+                _pingtime=now;//
                 if(now - _pingtime > SERVER_DOWN_TO)
                 {
                     std::cout << " ?????    server missing \r\n";
@@ -110,7 +110,7 @@ void a_peer::main()
                     _pingtime = now;
                 }
             }
-            if(_status == PER_LINKED && __provider)
+            if(_status == PER_LINKED)// && __provider)
             {
                 if(kbhit())
                 {
@@ -132,11 +132,21 @@ void a_peer::main()
 
 int a_peer::_rec_udp(udp_xdea& s, time_t now)
 {
-    int bytes = s.rreceive((char*)_udpbuffer, MAX_UDP);
+    int bytes = s.udp_sock::receive((char*)_udpbuffer, MAX_UDP);
     std::cout << ">" << Ip2str(s.Rsin()) << "\n";
     if(bytes>=sizeof(SrvCap))
     {
         return _received(s,now, bytes);
+    }
+    else if(bytes>0)
+    {
+        for(const auto& a:_pers)
+        {
+            if(a==s.Rsin())
+            {
+                _data_in(s, bytes);
+            }
+        }
     }
     return 0;
 }
@@ -196,32 +206,41 @@ bool a_peer::_srv_process(udp_xdea& s, SrvCap&  plin, time_t now)
     {
     case SRV_REGISTERRED:
         std::cout << "SRV REGISTERRED " << "\n";
-        _status = SRV_REGISTERRED;
+        if(_status == SRV_UNREGISTER)
+            _status = SRV_REGISTERRED;
         _regtime = time(0);
+
         break;
+
     case SRV_SET_PEER:
         std::cout << "SRV SENT PEERING DATA \n";
         _peering(s, plin);
         break;
+
     case SRV_UNREGISTERED:
         std::cout << "SRV RELEASED " << "\n";
         _status = SRV_UNREGISTERED;
         break;
+
     case SRV_PING:
         std::cout << "GOT SRV PING" << IP2STR(s.Rsin()) << "\n";
-        _pingtime = now;
+        if(_status == SRV_UNREGISTER)
+            _status = SRV_REGISTERRED;
         break;
+
     default:
         std::cout << "invalid srv verb " << int(plin._verb) << " from " << Ip2str(s.Rsin()) <<"\r\n";
         std::cout <<  (const char*)plin._u.reg.meiot <<"\r\n";
         break;
     }
+    _pingtime = now;
     return true;
 }
 
 bool a_peer::_per_process(udp_xdea& s, int bytes, time_t now)
 {
     SrvCap  pin;
+    SrvCap*  rpin = (SrvCap*)_udpbuffer;
     ipp     newper;
 
     assert(bytes >= sizeof(SrvCap));
@@ -231,24 +250,27 @@ bool a_peer::_per_process(udp_xdea& s, int bytes, time_t now)
     {
     case PER_DATA:
         _data_in(s, bytes);
+        _status = PER_LINKED;
         break;
 
     case PER_PING:
-        std::cout << "PER PING FROM "<<Ip2str(s.Rsin())<<" \r\n";
+        std::cout << "PER  ->  PER PING FROM "<<Ip2str(s.Rsin())<<" \r\n";
         pin._verb = PER_PONG; //back
-        s.send((const uint8_t*)&pin,sizeof(pin), s.Rsin());
+        s.send((const uint8_t*)&pin,sizeof(pin), s.Rsin(), __key);
         break;
 
     case PER_PONG:
-        std::cout << "PONG to (LINKED) << "<<  Ip2str(s.Rsin()) << " \n";
+        std::cout << "PER  -> PONG to (LINKED) << "<<  Ip2str(s.Rsin()) << " \n";
         _pers.insert(s.Rsin());
         _status = PER_LINKED;
         _show_pers(s);
         break;
+
     case SRV_PING:
-        std::cout << "GOT SRV PING" << IP2STR(s.Rsin()) << "\n";
+        std::cout << "GOT SRV PING ?? NOT HERE ?!?!?" << IP2STR(s.Rsin()) << "\n";
         _pingtime = now;
         break;
+
     default:
         std::cout << "Invalid verb << "<< pin._verb <<"  form "<< Ip2str(s.Rsin()) << " \n";
         break;
@@ -262,18 +284,15 @@ void a_peer::_peering(udp_xdea& s, SrvCap&  plin)
 {
     plin._verb = PER_PING;
 
-    std::cout << "PRIV_PRIV PER "<<__perport <<" PINGING->"<< plin._u.pp._private.str() << "\r\n";
     std::cout << "PUB_PUB  PER "<<__perport <<" PINGING->"<<  plin._u.pp._public.str() << "\r\n";
-
-    s.send((const uint8_t*)&plin, sizeof(plin), plin._u.pp._private);
-    s.send((const uint8_t*)&plin, sizeof(plin), plin._u.pp._public);
+    s.send((const uint8_t*)&plin, sizeof(plin), plin._u.pp._public,__key);
 }
 
 bool a_peer::_data_in(udp_xdea& s, int bytes)
 {
     //check if rSIn { _pers
     _udpbuffer[bytes]=0;
-    std::cout << "DATA : " << _udpbuffer+1 << "from:" << Ip2str(s.Rsin()) << "\n";
+    std::cout << "DATA : [" << _udpbuffer+1 << "] from:" << Ip2str(s.Rsin()) << "\n";
     return true;
 }
 
@@ -288,7 +307,7 @@ void a_peer::send_to_pers(udp_xdea& s, const char* data, size_t len ,bool encryp
 {
     for(const auto& p : _pers)
     {
-        s.udp_sock::send(data,len,p);
+        s.send((const uint8_t*)data,len,p);
     }
 }
 
@@ -309,9 +328,10 @@ int  a_peer::rec(uint8_t* pd, size_t l, bool decrypt)
 
 void a_peer::_i_am_here(udp_xdea& s)
 {
+    return;
     _mecap._verb = PER_AIH;
     std::cout << "pinging server \r\n";
-    s.send((const uint8_t*)&_mecap, sizeof(_mecap), _srvsin);
+    s.send((const uint8_t*)&_mecap, sizeof(_mecap), _srvsin,__key);
 }
 
 void a_peer::_show_pers(udp_xdea& s)
