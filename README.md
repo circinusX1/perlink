@@ -21,9 +21,14 @@ On another PC start one or more consumers
 
 ```
 
+**Concept**
+
+![alt text](https://github.com/comarius//perlink/master/doc/concept.png "concept")
 
 
+**Flow**
 
+![alt text](https://github.com/comarius//perlink/master/doc/flow.png "flow")
 
 
 
