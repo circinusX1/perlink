@@ -1,10 +1,29 @@
 ***UDP PUNCHTRU***
 
+
+Start relying server on a server out there on some IP
+
 ```
-./perlinc s vvv          #  on a server on a cloud
+marius@(none):~/APPS/perlink$ ./perlink s
+SERVER  
+```
 
-./perlink c mylink 5005  # on a Linux machine 1 in some network
-./perlink c mylink 5006  # on a linux machine 2 in some network
+On same server or on another PC anywhere start a provider in group abc
 
-# the 2 machines are linked over UDP p2p directly.
+```
+marius@(none):~/APPS/perlink$ ./perlink p p:abc 6603 SRV.IP.ADD.RESS
+
+```
+On another PC start one or more consumers
+
+```
+./perlink c c:abc 3003 IP.RELAY.ING.SRV
+
+```
+
+
+
+
+
+
 
