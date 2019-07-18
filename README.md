@@ -21,6 +21,9 @@ On another PC start one or more consumers
 
 ```
 
+
+The 2 pers are linked P2P. The server does not rely the data.
+
 **Concept**
 
 
@@ -30,7 +33,7 @@ On another PC start one or more consumers
 
 **Flow**
 
-![alt text](https://github.com/comarius//perlink/master/doc/flow.png "flow")
+![alt text](https://raw.githubusercontent.com/comarius/perlink/master/doc/flow.png "flow")
 
 
 
