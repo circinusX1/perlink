@@ -20,16 +20,16 @@
 
 struct ipp{
     uint32_t  _a;
-    int       _p;
+    uint16_t  _p;
     int       _t;
     uint32_t  _keys[4];
     ipp():_a(0),_p(0){}
     ipp(const char* a, int p,int t){
         _a = (uint32_t)(htonl(inet_addr(a)));
-        _p = (int)((p));
+        _p = (int)(htons(p));
         _t = t;
     }
-    ipp(uint32_t a, int p, int t):_a(a), _p(p),_t(t){}
+    ipp(uint32_t a, uint16_t p, int t):_a(a), _p(p),_t(t){}
     ipp(const ipp& r):_a(r._a), _p(r._p),_t(r._t){::memcpy(_keys,r._keys,sizeof(_keys));}
     ipp(struct SADDR_46& sa):_a(htonl(sa.sin_addr.s_addr)), _p(htons(sa.sin_port)){}
     ipp(struct sockaddr_in& sa):_a(htonl(sa.sin_addr.s_addr)), _p(htons(sa.sin_port)){}
@@ -37,11 +37,11 @@ struct ipp{
     const ipp& operator=(const ipp& r){_a = r._a; _p = r._p; ::memcpy(_keys,r._keys,sizeof(_keys)); return *this;}
     const ipp& operator=(const sockaddr_in& r){_a = htonl(r.sin_addr.s_addr);_p = htons(r.sin_port); return *this;}
     std::string str()const{
-        std::string ret = std::string(Ip2str(htonl(_a)));
+        std::string ret = std::string(Ip2str((_a)));
         ret += ":";
-        ret += std::to_string(htons(_p));
+        ret += std::to_string((_p));
         ret += ":";
-        ret += std::to_string(htons(_t));
+        ret += std::to_string((_t));
         return ret;
     }
 }__attribute__ ((aligned));

@@ -342,7 +342,7 @@ void a_peer::_show_pers(udp_xdea& s)
     {
         std::cout << " PERED " << IP2STR(p) << "\n";
     }
-    std::cout << "------------------------------\n";
+    std::cout << "------------------------------\n";LINKED
 }
 
 void a_peer::_proc_perrs(udp_xdea& s)

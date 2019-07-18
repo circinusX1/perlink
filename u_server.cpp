@@ -117,7 +117,8 @@ void u_server::_store_peer(udp_xdea& s, SrvCap& pl, ipp& pub, const uint32_t* ke
         char              shash2[64];
 
         _prev = pl;
-        ::sprintf(shash2,"%d %d %s %d %d %d %d", pub._a,  pub._p, pl._u.reg.id,keys[0],keys[1],keys[2],keys[3]);
+        ::sprintf(shash2,"%d %d %s %d %d %d %d", pub._a,  pub._p, pl._u.reg.id,keys[0],
+                                                keys[1],keys[2],keys[3]);
         std::size_t crc_hash = std::hash<std::string>{}(shash2);
 
         if((_dirty = _sq.store_peer((const char*)(pl._u.reg.id+2), crc_hash, pub, pl, keys)))
@@ -140,15 +141,21 @@ void u_server::_ping_pers(udp_xdea& s, SrvCap& pl)
         pl._verb = SRV_PING;
         s.send((const uint8_t*)&pl, sizeof(pl), p);
         ::usleep(1000);
+
+        std::cout << "LINK FOR:" << p.str() << "--------------\n";
+
         for(const auto& q : pers)
         {
             pl._verb = SRV_SET_PEER;
             if(p._t != q._t)
             {
                 pl._u.pp._public=p;
+                std::cout << "TO:" << q.str() << " IT:" << p.str()  << "\n";
                 s.send((const uint8_t*)&pl, sizeof(pl), q);
                 ::usleep(1000);
+
                 pl._u.pp._public=q;
+                std::cout << "TO:" << p.str() << " IT:" << q.str() << "\n";
                 s.send((const uint8_t*)&pl, sizeof(pl), p);
                 ::usleep(1000);
             }
@@ -185,7 +192,8 @@ void u_server::_process(udp_xdea& s, SrvCap& pl, const uint32_t *keys)
     {
         ipp pub(s.Rsin());
 
-        std::cout<< "REGISTERING  (SEEN)"  << IP2STR(s.Rsin())  << "\n";
+        pub._t = pl._u.reg.typ;
+        std::cout<< "REGISTERING  (SEEN)"  << pub.str() << "  ,   " << IP2STR(s.Rsin())  << "\n";
         if(pl._verb==SRV_REGISTER)
         {
             _store_peer(s, pl, pub, keys);

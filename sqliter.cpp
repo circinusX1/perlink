@@ -122,7 +122,8 @@ bool Sqlyte::remove_peer(std::size_t crc_hash)
 }
 
 
-bool Sqlyte::store_peer(const char* name, std::size_t crc_hash, const ipp& pub, const SrvCap& pl, const uint32_t* keys)
+bool Sqlyte::store_peer(const char* name, std::size_t crc_hash, const ipp& pub,
+                        const SrvCap& pl, const uint32_t* keys)
 {
     sqlite3_stmt      *statement;
     char              *szerr;

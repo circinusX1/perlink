@@ -31,9 +31,9 @@ private:
     void _proc_perrs(udp_xdea& s);
 
 private:
-    SrvCap           _mecap;
-    std::set<SADDR_46> _pers;
-    std::string     _id;
+    SrvCap              _mecap;
+    std::set<SADDR_46>  _pers;
+    std::string         _id;
 
     int             _status;
     time_t          _regtime=0;
