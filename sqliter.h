@@ -2,6 +2,8 @@
 #define SQLITER_H
 
 #include <iostream>
+#include <vector>
+#include <stdint.h>
 #include <sqlite3.h>
 #include "per_id.h"
 
@@ -35,6 +37,26 @@ public:
     }
 };
 
+class Sqlyte
+{
+public:
+    Sqlyte();
+    ~Sqlyte();
+
+    bool remove_peer(std::size_t crc_hash);
+    bool del_oldies();
+    bool store_peer(const char* name, std::size_t crc_hash, const ipp& pub, const SrvCap& pl,const uint32_t* keys);
+    void get_pers(std::vector<ipp>& s);
+    bool authorize(SrvCap& pl,const SrvCap& plclear, uint32_t ip4, uint32_t keys[4]);
+    bool deny(uint32_t ip4);
+    void update_peer(uint32_t ip, uint32_t port);
+private:
+    void _test();
+private:
+
+    sqlite3             *_db = nullptr;
+
+};
 
 
 

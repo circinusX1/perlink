@@ -223,6 +223,8 @@ SOCKET sock::create(int , int , const char* )
 //-----------------------------------------------------------------------------
 SOCKET sock::create(const SADDR_46& r, int opt)
 {
+    UNUS(r);
+    UNUS(opt);
     return (SOCKET)-1;
 }
 
@@ -488,6 +490,7 @@ int tcp_sock::receive(unsigned char* buff, int length, int , const char* )
 bool sock::destroy(bool emptyit)
 {
     bool b=false;
+    UNUS(emptyit);
     _set = 0;
     if((int)_thesock > 0)
     {
@@ -774,6 +777,7 @@ SOCKET tcp_srv_sock::accept(tcp_cli_sock& cliSock)
 
 SOCKET tcp_cli_sock::create(const SADDR_46& r, int opt)
 {
+    UNUS(r);
     return create(0,opt,0);
 }
 
@@ -781,6 +785,7 @@ SOCKET tcp_cli_sock::create(const SADDR_46& r, int opt)
 SOCKET tcp_cli_sock::create(int , int opt, const char* iface)
 {
     _hostent = 0;
+    UNUS(iface);
     assert(_thesock<=0);
     _thesock = ::socket(AF_INET, SOCK_STREAM, 0);
     if(_thesock <= 0)
@@ -1355,6 +1360,7 @@ char* udp_sock::ssock_addrip()
 int  udp_sock::set_rsin(const SADDR_46& r)
 {
     _remote_sin = r;
+    return 0;
 }
 
 int  udp_sock::set_rsin(const char* sip, int port)

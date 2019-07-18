@@ -24,7 +24,6 @@ SOURCES += \
         sock.cpp \
         sqliter.cpp \
         u_server.cpp \
-        u_server_one.cpp \
         udp_xdea.cpp
 
 # Default rules for deployment.
@@ -45,3 +44,5 @@ HEADERS += \
 
 
 unix|win32: LIBS += -lsqlite3
+
+DISTFILES +=

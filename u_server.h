@@ -4,11 +4,11 @@
 #include <mutex>
 #include <thread>
 #include <deque>
-#include <sqlite3.h>
-
 #include "per_id.h"
 #include "sock.h"
 #include "peers.h"
+#include "sqliter.h"
+
 
 #define FAST_AUTHS  1024
 
@@ -21,7 +21,7 @@ class udp_xdea;
 class u_server
 {
 public:
-    u_server(const char* );
+    u_server(const char* ch=0);
     virtual ~u_server();
     bool run();
     void main();
@@ -35,12 +35,11 @@ private:
     void _deny(udp_xdea& s);
     void _process(udp_xdea& s, SrvCap& pl,const uint32_t* keys);
     void _ufw_reject(uint32_t ip);
-    void _test();
-    void _update_db(udp_xdea& s, SrvCap& pl);
+    void _update_client_time(udp_xdea& s, SrvCap& pl);
     void _delete_olies();
 private:
     std::thread*        _t;
-    sqlite3             *_db = nullptr;
+    Sqlyte              _sq; //
     SrvCap              _prev;
     bool                _dirty=false;
 };

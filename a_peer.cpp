@@ -134,7 +134,7 @@ int a_peer::_rec_udp(udp_xdea& s, time_t now)
 {
     int bytes = s.udp_sock::receive((char*)_udpbuffer, MAX_UDP);
     std::cout << ">" << Ip2str(s.Rsin()) << "\n";
-    if(bytes>=sizeof(SrvCap))
+    if(bytes>=int(sizeof(SrvCap)))
     {
         return _received(s,now, bytes);
     }
@@ -168,7 +168,7 @@ bool a_peer::_receive(udp_xdea& s, time_t now)
     }
     if(sel > 0 && FD_ISSET(s.socket(), &rdSet))
     {
-        int bytes = _rec_udp(s,now);
+        _rec_udp(s,now);
     }
     _proc_perrs(s);
     return true;
@@ -240,10 +240,7 @@ bool a_peer::_srv_process(udp_xdea& s, SrvCap&  plin, time_t now)
 bool a_peer::_per_process(udp_xdea& s, int bytes, time_t now)
 {
     SrvCap  pin;
-    SrvCap*  rpin = (SrvCap*)_udpbuffer;
-    ipp     newper;
 
-    assert(bytes >= sizeof(SrvCap));
     ed(_udpbuffer, (uint8_t*)&pin, sizeof(pin), __key, false);
 
     switch(pin._verb)
@@ -307,6 +304,8 @@ void a_peer::send_to_pers(udp_xdea& s, const char* data, size_t len ,bool encryp
 {
     for(const auto& p : _pers)
     {
+        if(encrypt)
+        {;}
         s.send((const uint8_t*)data,len,p);
     }
 }
@@ -336,6 +335,7 @@ void a_peer::_i_am_here(udp_xdea& s)
 
 void a_peer::_show_pers(udp_xdea& s)
 {
+    UNUS(s);
     std::cout << "------------------------------\n";
     for(const auto& p : _pers)
     {
@@ -346,6 +346,7 @@ void a_peer::_show_pers(udp_xdea& s)
 
 void a_peer::_proc_perrs(udp_xdea& s)
 {
+    UNUS(s);
     usleep(1000);
 }
 

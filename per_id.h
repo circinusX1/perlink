@@ -9,9 +9,9 @@
 #define CLI_PORT    5002
 #define SRV_IP      "127.0.0.1"
 #define PAIRING_TOUT 10
-#define TTLIVE       10
+#define TTLIVE       15
 #define REG_TICK     10
-#define IAM_HERE_TO  20
+#define IAM_HERE_TO  15
 #define SERVER_DOWN_TO 30
 
 #define MAX_ATTEMPS     512
@@ -141,6 +141,10 @@ struct  SrvCap
         memset(_u.reg.meiot,0,sizeof(_u.reg.meiot));
         ::strcpy(_u.reg.meiot, k.c_str());
     }
+    bool operator!=(const SrvCap& r)
+    {
+        return memcmp(this, &r,sizeof(*this));
+    }
     bool operator==(const SrvCap& r)
     {
         return !memcmp(this, &r,sizeof(*this));
@@ -155,7 +159,10 @@ struct  SrvCap
 
 
 
-
+inline void _tokeys(const std::string&  meiot, uint32_t keys[4])
+{
+    ::sscanf(meiot.c_str(),"%8X%8X%8X%8X", &keys[0], &keys[1], &keys[2], &keys[3]);
+}
 
 
 

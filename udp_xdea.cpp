@@ -65,7 +65,6 @@ int udp_xdea::receive(char* buff, int length, const uint32_t* keys, int port, co
 
 int  udp_xdea::send(const uint8_t* buff, const int length, const  ipp& ipa, bool encrypt)
 {
-
     SADDR_46 rsin;
     rsin.sin_port        = htons (ipa._p);
     rsin.sin_family      = AF_INET;

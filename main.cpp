@@ -11,15 +11,8 @@ int  __perport = CLI_PORT;
 std::string __srvip=SRV_IP;
 bool __provider=false;
 
-static void _tokeys(const std::string&  meiot, uint32_t keys[4])
-{
-    ::sscanf(meiot.c_str(),"%8X%8X%8X%8X", &keys[0], &keys[1], &keys[2], &keys[3]);
-}
-
 int main(int argc, char *argv[])
 {
-    char        gret[128];
-
     if(argc>=3)
     {
         if( ::strchr(argv[2],':'))
