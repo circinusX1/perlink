@@ -23,7 +23,9 @@ On another PC start one or more consumers
 
 **Concept**
 
-![alt text](https://github.com/comarius//perlink/master/doc/concept.png "concept")
+
+
+![alt text](https://raw.githubusercontent.com/comarius/perlink/master/doc/concept.png "concept")
 
 
 **Flow**
