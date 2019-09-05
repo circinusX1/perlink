@@ -36,4 +36,5 @@ The 2 pers are linked P2P. The server does not rely the data.
 ![alt text](https://raw.githubusercontent.com/comarius/perlink/master/doc/flow.png "flow")
 
 
+NOOBS Preloaded SD Cards at https://www.redypis.org  
 
