@@ -37,3 +37,10 @@ The 2 pers are linked P2P. The server does not rely the data.
 
 
 
+
+
+* Software related music:
+* 
+    * [![Found this funny video](https://ghitara.com/images/local_gith.png)](https://www.youtube.com/@AIureaSonus)
+ 
+  
